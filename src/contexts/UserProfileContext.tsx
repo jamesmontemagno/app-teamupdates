@@ -8,6 +8,7 @@ const defaultProfile: UserProfile = {
   displayName: 'You',
   color: '#5f7a90',
   emoji: '🌟',
+  randomizationRadius: 100,
 };
 
 function loadProfile(): UserProfile {
@@ -33,15 +34,23 @@ function persistProfile(profile: UserProfile) {
 interface UserProfileContextShape {
   profile: UserProfile;
   updateProfile: (data: Partial<UserProfile>) => void;
+  geocodeLocation: (city?: string, state?: string, country?: string) => Promise<void>;
+  geocoding: boolean;
+  geocodeError: string | null;
 }
 
 const UserProfileContext = createContext<UserProfileContextShape>({
   profile: defaultProfile,
   updateProfile: () => {},
+  geocodeLocation: async () => {},
+  geocoding: false,
+  geocodeError: null,
 });
 
 export function UserProfileProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile>(() => loadProfile());
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeError, setGeocodeError] = useState<string | null>(null);
 
   const updateProfile = useCallback((data: Partial<UserProfile>) => {
     setProfile((current) => {
@@ -57,7 +66,35 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
     });
   }, []);
 
-  const value = useMemo(() => ({ profile, updateProfile }), [profile, updateProfile]);
+  const geocodeLocation = useCallback(async (city?: string, state?: string, country?: string) => {
+    setGeocoding(true);
+    setGeocodeError(null);
+    try {
+      const { geocodeAddress } = await import('../utils/geocoding');
+      const result = await geocodeAddress(city, state, country);
+      updateProfile({
+        city,
+        state,
+        country,
+        defaultLocation: {
+          lat: result.lat,
+          lng: result.lng,
+          displayName: result.displayName,
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to geocode location';
+      setGeocodeError(message);
+      throw error;
+    } finally {
+      setGeocoding(false);
+    }
+  }, [updateProfile]);
+
+  const value = useMemo(
+    () => ({ profile, updateProfile, geocodeLocation, geocoding, geocodeError }),
+    [profile, updateProfile, geocodeLocation, geocoding, geocodeError]
+  );
 
   return <UserProfileContext.Provider value={value}>{children}</UserProfileContext.Provider>;
 }

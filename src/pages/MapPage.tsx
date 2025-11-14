@@ -7,14 +7,12 @@ import { filterUpdates } from '../utils/filters';
 import type { FilterState } from '../types';
 import 'leaflet/dist/leaflet.css';
 
-const iconUrl = new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href;
-const iconRetinaUrl = new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href;
-const shadowUrl = new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href;
-
+// Fix Leaflet icon issue
+delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconUrl,
-  iconRetinaUrl,
-  shadowUrl,
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
 const defaultFilters: FilterState = {
@@ -107,6 +105,15 @@ export function MapPage() {
       </div>
       <div className="map-shell">
         <div ref={mapContainerRef} className="map-shell__map" />
+        <p className="text text--muted" style={{ 
+          textAlign: 'center', 
+          padding: '8px', 
+          fontSize: '0.875rem',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          borderTop: '1px solid #e0e0e0'
+        }}>
+          Locations are randomized for privacy
+        </p>
       </div>
     </div>
   );
