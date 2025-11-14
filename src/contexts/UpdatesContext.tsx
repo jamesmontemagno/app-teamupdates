@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { formatDayKey, nowAsISOString, sortUpdatesChronologically } from '../utils/date';
-import { LocationPin, MediaAttachment, TeamUpdate } from '../types';
+import type { LocationPin, MediaAttachment, TeamUpdate } from '../types';
 
 const STORAGE_KEY = 'teamUpdates_v1_records';
 

@@ -3,8 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUpdates } from '../contexts/UpdatesContext';
 import { FilterControls } from '../components/FilterControls';
-import { UpdateComposer } from '../components/UpdateComposer';
-import type { ComposerPayload } from '../components/UpdateComposer';
+import { UpdateComposer, type ComposerPayload } from '../components/UpdateComposer';
 import { UpdateCard } from '../components/UpdateCard';
 import { filterUpdates } from '../utils/filters';
 import { friendlyDayLabel, groupUpdatesByDay } from '../utils/date';
@@ -37,7 +36,7 @@ export function TimelinePage() {
     }
   }, [searchParams, setSearchParams]);
 
-  const handleCreate = (payload: Parameters<typeof addUpdate>[0]) => {
+  const handleCreate = (payload: ComposerPayload) => {
     addUpdate({
       ...payload,
       userId: profile.id,

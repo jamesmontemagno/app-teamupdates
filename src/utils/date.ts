@@ -1,5 +1,5 @@
 import { format, formatISO, isToday, isYesterday, parseISO } from 'date-fns';
-import { TeamUpdate } from '../types';
+import type { TeamUpdate } from '../types';
 
 export function formatDayKey(date: Date | string) {
   const parsed = typeof date === 'string' ? parseISO(date) : date;

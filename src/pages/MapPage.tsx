@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUpdates } from '../contexts/UpdatesContext';
 import { FilterControls } from '../components/FilterControls';
 import { filterUpdates } from '../utils/filters';
-import { FilterState } from '../types';
+import type { FilterState } from '../types';
 import 'leaflet/dist/leaflet.css';
 
 const iconUrl = new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href;

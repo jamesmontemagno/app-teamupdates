@@ -1,4 +1,4 @@
-import { TeamUpdate, FilterState } from '../types';
+import type { TeamUpdate, FilterState } from '../types';
 
 export function filterUpdates(updates: TeamUpdate[], filters: FilterState) {
   return updates.filter((update) => {

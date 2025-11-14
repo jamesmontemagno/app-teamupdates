@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { UserProfile } from '../types';
+import type { UserProfile } from '../types';
 
 const STORAGE_KEY = 'teamUpdatesUserProfile';
 
