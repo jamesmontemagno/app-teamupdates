@@ -1,73 +1,49 @@
-# React + TypeScript + Vite
+# Pulseboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Pulseboard is a lightweight team-updating console: your crew can post text, audio, photo, or video updates, optionally tag a place, and browse everything on a timeline or map.
 
-Currently, two official plugins are available:
+## Key features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Timeline composer:** text area, single-select categories, modern date picker, optional location, and voice/photo/video attachments with local persistence.
+- **Filterable feed:** chip controls for days, categories, media types, and geotag filters, plus inline highlighting when jumping from the map.
+- **Map view:** Leaflet + OpenStreetMap tiles show every geotagged update with popups that link back to the timeline.
+- **Profile settings:** locally stored display name, emoji/avatar, and accent color so every post includes attribution from day one.
 
-## React Compiler
+## Getting started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Install dependencies:
 
-## Expanding the ESLint configuration
+   ```bash
+   npm install
+   ```
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+2. Run the dev server:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+   ```bash
+   npm run dev -- --host
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+3. Build for production:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+   ```bash
+   npm run build
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+4. Preview a production build locally:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+   ```bash
+   npm run preview
+   ```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Architecture notes
+
+- **React Router** powers the `/` timeline, `/map`, and `/profile` routes.
+- **Context providers** manage user profiles and the updates store, which persists data to `localStorage` for offline-friendly usage.
+- **Leaflet/React-Leaflet** draw the map and automatically fit to any new geotagged entries.
+- **Custom hooks** (`useVoiceRecorder`, `useGeolocation`) encapsulate browser APIs while keeping UI components clean.
+
+## Next steps
+
+- Swap the local store with a remote API when you add a backend.
+- Plug in authentication to replace the local profile with real identities.
+- Extend the media handling to upload to cloud storage and stream audio/video for longer updates.
