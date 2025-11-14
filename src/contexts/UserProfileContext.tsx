@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 import type { UserProfile } from '../types';
 
 const STORAGE_KEY = 'teamUpdatesUserProfile';
+const ONBOARDING_KEY = 'teamUpdatesOnboarded';
 
 const defaultProfile: UserProfile = {
   id: 'anonymous',
@@ -10,6 +11,14 @@ const defaultProfile: UserProfile = {
   emoji: '🌟',
   randomizationRadius: 100,
 };
+
+export function isNewUser(): boolean {
+  return !localStorage.getItem(ONBOARDING_KEY);
+}
+
+export function markUserOnboarded(): void {
+  localStorage.setItem(ONBOARDING_KEY, 'true');
+}
 
 function loadProfile(): UserProfile {
   try {
