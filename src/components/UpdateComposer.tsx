@@ -58,6 +58,16 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
   const [geocoding, setGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
 
+  // Pre-fill location fields from last location when checkbox is toggled
+  useEffect(() => {
+    if (attachLocation && profile.lastLocation) {
+      setManualCity(profile.lastLocation.city || '');
+      setManualState(profile.lastLocation.state || '');
+      setManualCountry(profile.lastLocation.country || '');
+      setManualLabel(profile.lastLocation.label || '');
+    }
+  }, [attachLocation, profile.lastLocation]);
+
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -142,6 +152,19 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
         ? { ...locationPin, label: locationLabel }
         : undefined,
     };
+    
+    // Save last location to profile if location was manually geocoded
+    if (attachLocation && (manualCity || manualState || manualCountry)) {
+      updateProfile({
+        lastLocation: {
+          city: manualCity || undefined,
+          state: manualState || undefined,
+          country: manualCountry || undefined,
+          label: manualLabel || undefined,
+        },
+      });
+    }
+    
     onCreate(payload);
     setText('');
     setLocationPin(null);

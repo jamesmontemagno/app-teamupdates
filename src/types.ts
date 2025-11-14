@@ -43,6 +43,12 @@ export interface UserProfile {
     displayName?: string;
   };
   randomizationRadius?: number;
+  lastLocation?: {
+    city?: string;
+    state?: string;
+    country?: string;
+    label?: string;
+  };
 }
 
 export type MediaFilter = 'all' | 'text' | 'audio' | 'image' | 'video';
