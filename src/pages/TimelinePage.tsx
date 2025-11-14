@@ -41,6 +41,7 @@ export function TimelinePage() {
       ...payload,
       userId: profile.id,
       userDisplayName: profile.displayName,
+      userEmoji: profile.emoji,
     });
   };
 

@@ -20,6 +20,7 @@ export interface TeamUpdate {
   id: string;
   userId: string;
   userDisplayName: string;
+  userEmoji: string;
   createdAt: string;
   dayKey: string;
   category: Category;

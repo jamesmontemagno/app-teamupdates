@@ -2,16 +2,32 @@ import { useState } from 'react';
 import { useUserProfile } from '../contexts/UserProfileContext';
 
 const colorOptions = ['#5f7a90', '#c05655', '#2a9d8f', '#7c3aed', '#f97316'];
+const emojiOptions = ['🌟', '🚀', '💡', '🎯', '🔥', '⚡', '💪', '🎨', '🌈', '✨', '🎉', '💻', '📱', '🎮', '🏃', '🌺'];
 
 export function ProfilePage() {
   const { profile, updateProfile } = useUserProfile();
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [emoji, setEmoji] = useState(profile.emoji);
   const [color, setColor] = useState(profile.color);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [customEmoji, setCustomEmoji] = useState('');
 
   const handleSave = () => {
     if (!displayName.trim()) return;
     updateProfile({ displayName: displayName.trim(), emoji: emoji.trim() || '🌟', color });
+  };
+
+  const handleEmojiSelect = (selectedEmoji: string) => {
+    setEmoji(selectedEmoji);
+    setShowEmojiPicker(false);
+  };
+
+  const handleCustomEmojiSubmit = () => {
+    if (customEmoji.trim()) {
+      setEmoji(customEmoji.trim());
+      setCustomEmoji('');
+      setShowEmojiPicker(false);
+    }
   };
 
   return (
@@ -28,10 +44,65 @@ export function ProfilePage() {
           />
         </label>
 
-        <label className="label">
-          Emoji
-          <input type="text" value={emoji} onChange={(event) => setEmoji(event.target.value)} maxLength={2} />
-        </label>
+        <div className="label">
+          <span>Your Emoji</span>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginTop: '8px' }}>
+            <button 
+              type="button" 
+              className="emoji-button"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              title="Change emoji"
+            >
+              {emoji}
+            </button>
+            <span className="text text--muted">Click to change</span>
+          </div>
+        </div>
+
+        {showEmojiPicker && (
+          <div className="picker-popup">
+            <div className="picker-popup__header">
+              <h3>Choose your emoji</h3>
+              <button 
+                type="button" 
+                className="picker-popup__close"
+                onClick={() => setShowEmojiPicker(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="emoji-grid">
+              {emojiOptions.map((emojiOption) => (
+                <button
+                  key={emojiOption}
+                  type="button"
+                  className={`emoji-option ${emoji === emojiOption ? 'emoji-option--active' : ''}`}
+                  onClick={() => handleEmojiSelect(emojiOption)}
+                >
+                  {emojiOption}
+                </button>
+              ))}
+            </div>
+            <div className="picker-popup__custom">
+              <input
+                type="text"
+                placeholder="Or enter custom emoji..."
+                value={customEmoji}
+                onChange={(e) => setCustomEmoji(e.target.value)}
+                className="custom-emoji-input"
+                maxLength={2}
+              />
+              <button 
+                type="button" 
+                className="button button--soft"
+                onClick={handleCustomEmojiSubmit}
+                disabled={!customEmoji.trim()}
+              >
+                Use Custom
+              </button>
+            </div>
+          </div>
+        )}
 
         <p className="label">Accent color</p>
         <div className="color-palette">
