@@ -57,6 +57,18 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
   const [manualCountry, setManualCountry] = useState('');
   const [geocoding, setGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
+  const [showCaptureModal, setShowCaptureModal] = useState(false);
+  const [captureMode, setCaptureMode] = useState<'photo' | 'video'>('photo');
+  const [captureStream, setCaptureStream] = useState<MediaStream | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [isRecordingVideo, setIsRecordingVideo] = useState(false);
+  const captureVideoRef = useRef<HTMLVideoElement | null>(null);
+  const captureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<number | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [captureError, setCaptureError] = useState<string | null>(null);
+  const captureCancelledRef = useRef(false);
 
   // Pre-fill location fields from last location when checkbox is toggled
   useEffect(() => {
@@ -218,6 +230,173 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
       setCustomEmoji('');
       setShowEmojiPicker(false);
     }
+  };
+
+  const stopCaptureStream = () => {
+    if (captureStream) {
+      captureStream.getTracks().forEach((track) => track.stop());
+      setCaptureStream(null);
+    }
+  };
+
+  const resetCaptureSession = () => {
+    stopCaptureStream();
+    if (recordingTimerRef.current) {
+      window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    setIsRecordingVideo(false);
+    setRecordingDuration(0);
+    setMediaRecorder(null);
+    recordedChunksRef.current = [];
+  };
+
+  const cleanupCaptureModal = () => {
+    resetCaptureSession();
+    captureCancelledRef.current = false;
+    setCaptureError(null);
+    setShowCaptureModal(false);
+  };
+
+  const startCaptureStream = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCaptureError('Camera access is not supported in this browser.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: captureMode === 'video',
+      });
+      setCaptureStream(stream);
+    } catch (error) {
+      console.error('Unable to access camera:', error);
+      setCaptureError('Unable to access your camera. Please check permissions.');
+    }
+  };
+
+  useEffect(() => {
+    if (!showCaptureModal) return;
+
+    startCaptureStream();
+
+    return () => {
+      resetCaptureSession();
+    };
+  }, [showCaptureModal, captureMode]);
+
+  useEffect(() => {
+    if (captureVideoRef.current && captureStream) {
+      captureVideoRef.current.srcObject = captureStream;
+    }
+  }, [captureStream]);
+
+  const finalizeCapture = (attachment: MediaAttachment) => {
+    setMedia(attachment);
+    setMediaError(null);
+    setCaptureError(null);
+    captureCancelledRef.current = false;
+    cleanupCaptureModal();
+  };
+
+  const handleOpenCaptureModal = (mode: 'photo' | 'video') => {
+    setCaptureMode(mode);
+    setCaptureError(null);
+    setShowCaptureModal(true);
+  };
+
+  const handleCloseCaptureModal = () => {
+    if (isRecordingVideo && mediaRecorder) {
+      captureCancelledRef.current = true;
+      mediaRecorder.stop();
+      return;
+    }
+    cleanupCaptureModal();
+  };
+
+  const handleCapturePhoto = () => {
+    if (!captureVideoRef.current || !captureCanvasRef.current) return;
+
+    const video = captureVideoRef.current;
+    const canvas = captureCanvasRef.current;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg');
+
+    finalizeCapture({
+      type: 'image',
+      dataUrl,
+      name: 'Captured photo',
+      size: 0,
+    });
+  };
+
+  const handleRecordingTick = () => {
+    setRecordingDuration((prev) => prev + 1);
+  };
+
+  const handleStartVideoRecording = () => {
+    if (!captureStream) {
+      setCaptureError('Start your camera first.');
+      return;
+    }
+
+    if (typeof MediaRecorder === 'undefined') {
+      setCaptureError('Video recording is not supported in this browser.');
+      return;
+    }
+
+    recordedChunksRef.current = [];
+    let options: MediaRecorderOptions | undefined;
+    if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+      options = { mimeType: 'video/webm;codecs=vp9' };
+    } else if (MediaRecorder.isTypeSupported('video/webm')) {
+      options = { mimeType: 'video/webm' };
+    }
+
+    const recorder = new MediaRecorder(captureStream, options);
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunksRef.current.push(event.data);
+      }
+    };
+    recorder.onstop = async () => {
+      if (captureCancelledRef.current) {
+        captureCancelledRef.current = false;
+        cleanupCaptureModal();
+        return;
+      }
+
+      const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+      const dataUrl = await toDataUrl(blob);
+      finalizeCapture({
+        type: 'video',
+        dataUrl,
+        name: 'Captured video.webm',
+        size: blob.size,
+      });
+    };
+
+    recorder.start();
+    setMediaRecorder(recorder);
+    setIsRecordingVideo(true);
+    setRecordingDuration(0);
+    recordingTimerRef.current = window.setInterval(handleRecordingTick, 1000);
+  };
+
+  const handleStopVideoRecording = () => {
+    if (!mediaRecorder) return;
+    if (recordingTimerRef.current) {
+      window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    setIsRecordingVideo(false);
+    mediaRecorder.stop();
   };
 
   return (
@@ -387,6 +566,9 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
           <button type="button" className="button button--soft" onClick={() => videoInputRef.current?.click()}>
             Add video
           </button>
+          <button type="button" className="button button--soft" onClick={() => handleOpenCaptureModal('photo')}>
+            Use camera
+          </button>
         </div>
         <div className="composer__media-status">
           {voice.status === 'recording' && <span>Recording {voice.elapsed.toFixed(0)}s</span>}
@@ -516,6 +698,69 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
         className="sr-only"
         onChange={(event) => handleFileSelection(event, 'video')}
       />
+      {showCaptureModal && (
+        <div className="modal-overlay" onClick={handleCloseCaptureModal}>
+          <div className="modal-content capture-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="capture-modal__header">
+              <h3>Capture {captureMode === 'photo' ? 'photo' : 'video'}</h3>
+              <div className="capture-modal__mode">
+                <button
+                  type="button"
+                  className={`capture-modal__mode-button ${captureMode === 'photo' ? 'capture-modal__mode-button--active' : ''}`}
+                  onClick={() => setCaptureMode('photo')}
+                >
+                  Photo
+                </button>
+                <button
+                  type="button"
+                  className={`capture-modal__mode-button ${captureMode === 'video' ? 'capture-modal__mode-button--active' : ''}`}
+                  onClick={() => setCaptureMode('video')}
+                >
+                  Video
+                </button>
+              </div>
+            </div>
+            <div className="capture-modal__preview">
+              <video
+                ref={captureVideoRef}
+                autoPlay
+                playsInline
+                muted
+              />
+            </div>
+            {captureError && <p className="text text--error" style={{ marginTop: '12px' }}>{captureError}</p>}
+            <div className="capture-modal__actions">
+              {captureMode === 'photo' && (
+                <button type="button" className="button button--primary" onClick={handleCapturePhoto}>
+                  Take photo
+                </button>
+              )}
+              {captureMode === 'video' && (
+                <>
+                  <button
+                    type="button"
+                    className="button button--primary"
+                    onClick={isRecordingVideo ? handleStopVideoRecording : handleStartVideoRecording}
+                  >
+                    {isRecordingVideo ? 'Stop recording' : 'Start recording'}
+                  </button>
+                  {recordingDuration > 0 && (
+                    <span className="text text--muted" style={{ alignSelf: 'center' }}>
+                      Recording: {recordingDuration.toFixed(0)}s
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+            <div className="capture-modal__footer">
+              <button type="button" className="button button--soft" onClick={handleCloseCaptureModal}>
+                Cancel
+              </button>
+            </div>
+            <canvas ref={captureCanvasRef} style={{ display: 'none' }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
