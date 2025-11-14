@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { useUserProfile } from '../contexts/UserProfileContext';
+import layoutStyles from './PageLayout.module.css';
+import profileStyles from './ProfilePage.module.css';
 import 'leaflet/dist/leaflet.css';
 
 // Fix Leaflet icon issue
@@ -211,10 +213,10 @@ export function ProfilePage() {
   }, [stream]);
 
   return (
-    <div className="page">
-      <h1 className="page__title">Profile</h1>
-      <div className="card">
-        <label className="label">
+    <div className={layoutStyles['page']}>
+      <h1 className={layoutStyles['page__title']}>Profile</h1>
+      <div className={profileStyles['card']}>
+        <label className={profileStyles['label']}>
           Display name
           <input
             type="text"
@@ -224,7 +226,7 @@ export function ProfilePage() {
           />
         </label>
 
-        <div className="label">
+        <div className={profileStyles['label']}>
           <span>Profile Photo</span>
           <p className="text text--muted" style={{ marginTop: '4px', fontSize: '0.875rem' }}>
             Upload a photo or take one with your camera
@@ -304,7 +306,7 @@ export function ProfilePage() {
           <canvas ref={canvasRef} style={{ display: 'none' }} />
         </div>
 
-        <div className="label">
+        <div className={profileStyles['label']}>
           <span>Your Emoji</span>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginTop: '8px' }}>
             <button 
@@ -364,20 +366,20 @@ export function ProfilePage() {
           </div>
         )}
 
-        <p className="label">Accent color</p>
-        <div className="color-palette">
+        <p className={profileStyles['label']}>Accent color</p>
+        <div className={profileStyles['color-palette']}>
           {colorOptions.map((option) => (
             <button
               key={option}
               type="button"
-              className={`color-swatch ${color === option ? 'color-swatch--active' : ''}`}
+              className={`${profileStyles['color-swatch']} ${color === option ? profileStyles['color-swatch--active'] : ''}`.trim()}
               style={{ backgroundColor: option }}
               onClick={() => setColor(option)}
             />
           ))}
         </div>
 
-        <div className="label" style={{ marginTop: '24px' }}>
+        <div className={profileStyles['label']} style={{ marginTop: '24px' }}>
           <span>Default Location</span>
           <p className="text text--muted" style={{ marginTop: '4px', fontSize: '0.875rem' }}>
             Used as fallback when browser location is unavailable
@@ -385,7 +387,7 @@ export function ProfilePage() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-          <label className="label">
+          <label className={profileStyles['label']}>
             City
             <input
               type="text"
@@ -394,7 +396,7 @@ export function ProfilePage() {
               placeholder="Seattle"
             />
           </label>
-          <label className="label">
+          <label className={profileStyles['label']}>
             State
             <input
               type="text"
@@ -403,7 +405,7 @@ export function ProfilePage() {
               placeholder="WA"
             />
           </label>
-          <label className="label">
+          <label className={profileStyles['label']}>
             Country
             <input
               type="text"
@@ -414,7 +416,7 @@ export function ProfilePage() {
           </label>
         </div>
 
-        <label className="label">
+        <label className={profileStyles['label']}>
           Location randomization: {randomizationRadius}m
           <input
             type="range"
