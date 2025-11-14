@@ -34,6 +34,15 @@ export interface UserProfile {
   displayName: string;
   color: string;
   emoji: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  defaultLocation?: {
+    lat: number;
+    lng: number;
+    displayName?: string;
+  };
+  randomizationRadius?: number;
 }
 
 export type MediaFilter = 'all' | 'text' | 'audio' | 'image' | 'video';

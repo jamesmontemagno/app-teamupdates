@@ -1,9 +1,15 @@
 import { useCallback, useState } from 'react';
 import type { LocationPin } from '../types';
+import { randomizeCoordinates } from '../utils/randomizeLocation';
 
 type GeolocationStatus = 'idle' | 'pending' | 'ready' | 'error';
 
-export function useGeolocation() {
+interface UseGeolocationOptions {
+  randomizationRadius?: number;
+}
+
+export function useGeolocation(options: UseGeolocationOptions = {}) {
+  const { randomizationRadius = 0 } = options;
   const [status, setStatus] = useState<GeolocationStatus>('idle');
   const [position, setPosition] = useState<LocationPin | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -18,9 +24,14 @@ export function useGeolocation() {
     setStatus('pending');
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        // Apply randomization if radius is set
+        const coords = randomizationRadius > 0
+          ? randomizeCoordinates(pos.coords.latitude, pos.coords.longitude, randomizationRadius)
+          : { lat: pos.coords.latitude, lng: pos.coords.longitude };
+
         setPosition({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
+          lat: coords.lat,
+          lng: coords.lng,
           accuracy: pos.coords.accuracy,
         });
         setError(null);
@@ -32,7 +43,7 @@ export function useGeolocation() {
       },
       { enableHighAccuracy: true }
     );
-  }, []);
+  }, [randomizationRadius]);
 
   return {
     status,

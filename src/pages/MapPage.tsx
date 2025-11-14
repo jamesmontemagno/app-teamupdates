@@ -107,6 +107,15 @@ export function MapPage() {
       </div>
       <div className="map-shell">
         <div ref={mapContainerRef} className="map-shell__map" />
+        <p className="text text--muted" style={{ 
+          textAlign: 'center', 
+          padding: '8px', 
+          fontSize: '0.875rem',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          borderTop: '1px solid #e0e0e0'
+        }}>
+          Locations are randomized for privacy
+        </p>
       </div>
     </div>
   );

@@ -5,6 +5,8 @@ import { formatDayKey } from '../utils/date';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import { useUserProfile } from '../contexts/UserProfileContext';
+import { randomizeCoordinates } from '../utils/randomizeLocation';
+import { geocodeAddress } from '../utils/geocoding';
 
 export interface ComposerPayload {
   text: string;
@@ -50,11 +52,16 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
   const [manualLabel, setManualLabel] = useState('');
   const [locationPin, setLocationPin] = useState<LocationPin | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
+  const [manualCity, setManualCity] = useState('');
+  const [manualState, setManualState] = useState('');
+  const [manualCountry, setManualCountry] = useState('');
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeError, setGeocodeError] = useState<string | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
 
-  const geo = useGeolocation();
+  const geo = useGeolocation({ randomizationRadius: profile.randomizationRadius || 0 });
   const voice = useVoiceRecorder(60);
 
   useEffect(() => {
@@ -66,8 +73,20 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
   useEffect(() => {
     if (geo.position) {
       setLocationPin({ ...geo.position, label: geo.position.label });
+    } else if (geo.status === 'error' && profile.defaultLocation) {
+      // Fallback to profile default location with randomization
+      const randomized = randomizeCoordinates(
+        profile.defaultLocation.lat,
+        profile.defaultLocation.lng,
+        profile.randomizationRadius || 0
+      );
+      setLocationPin({
+        lat: randomized.lat,
+        lng: randomized.lng,
+        label: profile.defaultLocation.displayName,
+      });
     }
-  }, [geo.position]);
+  }, [geo.position, geo.status, profile.defaultLocation, profile.randomizationRadius]);
 
   useEffect(() => {
     if (voice.recorded) {
@@ -127,9 +146,36 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
     setText('');
     setLocationPin(null);
     setManualLabel('');
+    setManualCity('');
+    setManualState('');
+    setManualCountry('');
+    setGeocodeError(null);
     setSelectedDate(formatDayKey(new Date()));
     setMediaError(null);
     setShowDatePicker(false);
+  };
+
+  const handleManualGeocode = async () => {
+    setGeocoding(true);
+    setGeocodeError(null);
+    try {
+      const result = await geocodeAddress(manualCity, manualState, manualCountry);
+      const randomized = randomizeCoordinates(
+        result.lat,
+        result.lng,
+        profile.randomizationRadius || 0
+      );
+      setLocationPin({
+        lat: randomized.lat,
+        lng: randomized.lng,
+        label: manualLabel || result.displayName,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to geocode location';
+      setGeocodeError(message);
+    } finally {
+      setGeocoding(false);
+    }
   };
 
   const handleMediaClear = () => {
@@ -362,8 +408,12 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
               {geo.status === 'pending'
                 ? 'Requesting location…'
                 : geo.status === 'ready'
-                  ? 'Location captured.'
-                  : geo.error || 'Allow location to pin this update.'}
+                  ? 'Location captured (randomized for privacy).'
+                  : geo.status === 'error' && profile.defaultLocation
+                    ? 'Using your default location (randomized for privacy).'
+                    : geo.status === 'error' && !profile.defaultLocation
+                      ? 'Unable to get location. Set a default location in your profile.'
+                      : 'Allow location to pin this update.'}
             </p>
             <input
               type="text"
@@ -372,6 +422,51 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
               placeholder="Label (e.g., Home, Office)"
               className="composer__location-input"
             />
+            <div style={{ marginTop: '12px', borderTop: '1px solid #e0e0e0', paddingTop: '12px' }}>
+              <p className="composer__note" style={{ marginBottom: '8px' }}>Or enter a location manually:</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                <input
+                  type="text"
+                  value={manualCity}
+                  onChange={(e) => setManualCity(e.target.value)}
+                  placeholder="City"
+                  className="composer__location-input"
+                />
+                <input
+                  type="text"
+                  value={manualState}
+                  onChange={(e) => setManualState(e.target.value)}
+                  placeholder="State"
+                  className="composer__location-input"
+                />
+                <input
+                  type="text"
+                  value={manualCountry}
+                  onChange={(e) => setManualCountry(e.target.value)}
+                  placeholder="Country"
+                  className="composer__location-input"
+                />
+              </div>
+              <button
+                type="button"
+                className="button button--soft"
+                onClick={handleManualGeocode}
+                disabled={geocoding || (!manualCity && !manualState && !manualCountry)}
+                style={{ width: '100%' }}
+              >
+                {geocoding ? 'Geocoding…' : 'Geocode Location'}
+              </button>
+              {geocodeError && (
+                <p className="text text--error" style={{ marginTop: '8px', fontSize: '0.875rem' }}>
+                  {geocodeError}
+                </p>
+              )}
+              {locationPin && !geocodeError && (
+                <p className="text" style={{ marginTop: '8px', fontSize: '0.875rem', color: '#2a9d8f' }}>
+                  ✓ Location set: {locationPin.lat.toFixed(4)}, {locationPin.lng.toFixed(4)}
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>
