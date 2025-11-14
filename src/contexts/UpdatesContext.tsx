@@ -13,6 +13,7 @@ export interface UpdatePayload {
   userId: string;
   userDisplayName: string;
   userEmoji: string;
+  userPhotoUrl?: string;
 }
 
 interface UpdatesContextShape {
@@ -62,6 +63,7 @@ export function UpdatesProvider({ children }: { children: React.ReactNode }) {
       userId: payload.userId,
       userDisplayName: payload.userDisplayName,
       userEmoji: payload.userEmoji,
+      userPhotoUrl: payload.userPhotoUrl,
     };
 
     setUpdates((current) => sortUpdatesChronologically([newUpdate, ...current]));

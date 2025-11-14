@@ -176,6 +176,7 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
     setSelectedDate(formatDayKey(new Date()));
     setMediaError(null);
     setShowDatePicker(false);
+    setAttachLocation(false);
   };
 
   const handleManualGeocode = async () => {

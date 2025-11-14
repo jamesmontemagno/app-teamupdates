@@ -21,6 +21,7 @@ export interface TeamUpdate {
   userId: string;
   userDisplayName: string;
   userEmoji: string;
+  userPhotoUrl?: string;
   createdAt: string;
   dayKey: string;
   category: Category;
@@ -34,6 +35,7 @@ export interface UserProfile {
   displayName: string;
   color: string;
   emoji: string;
+  photoUrl?: string;
   city?: string;
   state?: string;
   country?: string;

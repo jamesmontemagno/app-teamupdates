@@ -26,12 +26,20 @@ export function ProfilePage() {
   const [country, setCountry] = useState(profile.country || '');
   const [randomizationRadius, setRandomizationRadius] = useState(profile.randomizationRadius || 100);
   const [geocodeSuccess, setGeocodeSuccess] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState(profile.photoUrl || '');
+  const [saved, setSaved] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
 
   const handleSave = () => {
     if (!displayName.trim()) return;
+    setSaved(true);
     updateProfile({ 
       displayName: displayName.trim(), 
       emoji: emoji.trim() || '🌟', 
@@ -40,7 +48,9 @@ export function ProfilePage() {
       state,
       country,
       randomizationRadius,
+      photoUrl,
     });
+    setTimeout(() => setSaved(false), 2000);
   };
 
   const handleGeocode = async () => {
@@ -113,6 +123,93 @@ export function ProfilePage() {
     }
   };
 
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCameraCapture = async () => {
+    if (isCameraActive) {
+      // Stop camera
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        setStream(null);
+      }
+      setIsCameraActive(false);
+    } else {
+      // Start camera
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'user' } 
+        });
+        setStream(mediaStream);
+        setIsCameraActive(true);
+        
+        // Wait for video element to be ready
+        setTimeout(() => {
+          if (videoRef.current) {
+            videoRef.current.srcObject = mediaStream;
+          }
+        }, 100);
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        alert('Unable to access camera. Please check permissions.');
+      }
+    }
+  };
+
+  const handleTakePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    
+    if (!context) return;
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw video frame to canvas
+    context.drawImage(video, 0, 0);
+    
+    // Convert to data URL
+    const dataUrl = canvas.toDataURL('image/jpeg');
+    setPhotoUrl(dataUrl);
+    
+    // Stop camera
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setIsCameraActive(false);
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoUrl('');
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setIsCameraActive(false);
+  };
+
+  // Cleanup camera stream on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
+
   return (
     <div className="page">
       <h1 className="page__title">Profile</h1>
@@ -126,6 +223,86 @@ export function ProfilePage() {
             placeholder="How should your team see you?"
           />
         </label>
+
+        <div className="label">
+          <span>Profile Photo</span>
+          <p className="text text--muted" style={{ marginTop: '4px', fontSize: '0.875rem' }}>
+            Upload a photo or take one with your camera
+          </p>
+          {photoUrl ? (
+            <div style={{ marginTop: '12px' }}>
+              <div style={{ position: 'relative', width: '120px', height: '120px', borderRadius: '50%', overflow: 'hidden', border: '3px solid #e0e0e0' }}>
+                <img src={photoUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div style={{ 
+                  position: 'absolute', 
+                  bottom: '4px', 
+                  right: '4px', 
+                  fontSize: '2rem',
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #e0e0e0'
+                }}>
+                  {emoji}
+                </div>
+              </div>
+              <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                <button type="button" className="button button--soft" onClick={() => photoInputRef.current?.click()}>
+                  Change Photo
+                </button>
+                <button type="button" className="button button--soft" onClick={handleRemovePhoto}>
+                  Remove Photo
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button type="button" className="button button--soft" onClick={() => photoInputRef.current?.click()}>
+                Upload Photo
+              </button>
+              <button type="button" className="button button--soft" onClick={handleCameraCapture}>
+                {isCameraActive ? 'Cancel Camera' : 'Take Photo'}
+              </button>
+            </div>
+          )}
+          
+          {isCameraActive && (
+            <div style={{ marginTop: '12px' }}>
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline
+                style={{ 
+                  width: '100%', 
+                  maxWidth: '400px', 
+                  borderRadius: '8px',
+                  border: '2px solid #e0e0e0'
+                }}
+              />
+              <button 
+                type="button" 
+                className="button button--primary" 
+                onClick={handleTakePhoto}
+                style={{ marginTop: '8px', width: '100%', maxWidth: '400px' }}
+              >
+                Capture Photo
+              </button>
+            </div>
+          )}
+          
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            style={{ display: 'none' }}
+          />
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
+        </div>
 
         <div className="label">
           <span>Your Emoji</span>
@@ -280,8 +457,13 @@ export function ProfilePage() {
           </div>
         )}
 
-        <button type="button" className="button button--primary" onClick={handleSave}>
-          Save profile
+        <button 
+          type="button" 
+          className="button button--primary" 
+          onClick={handleSave}
+          disabled={saved || !displayName.trim()}
+        >
+          {saved ? '✓ Saved!' : 'Save profile'}
         </button>
       </div>
     </div>

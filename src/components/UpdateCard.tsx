@@ -11,7 +11,40 @@ export function UpdateCard({ update, isHighlighted, onViewOnMap }: UpdateCardPro
   return (
     <article className={`update-card ${isHighlighted ? 'update-card--highlight' : ''}`}>
       <header className="update-card__header">
-        <div className="update-card__avatar" style={{ fontSize: '1.5rem' }}>{update.userEmoji || update.userDisplayName.slice(0, 2)}</div>
+        {update.userPhotoUrl ? (
+          <div className="update-card__avatar" style={{ position: 'relative', fontSize: '1.5rem', padding: 0 }}>
+            <img 
+              src={update.userPhotoUrl} 
+              alt={update.userDisplayName}
+              style={{ 
+                width: '48px', 
+                height: '48px', 
+                borderRadius: '50%', 
+                objectFit: 'cover',
+                display: 'block'
+              }} 
+            />
+            <div style={{ 
+              position: 'absolute', 
+              bottom: '-2px', 
+              right: '-2px', 
+              fontSize: '1.25rem',
+              backgroundColor: 'white',
+              borderRadius: '50%',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid white',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+            }}>
+              {update.userEmoji}
+            </div>
+          </div>
+        ) : (
+          <div className="update-card__avatar" style={{ fontSize: '1.5rem' }}>{update.userEmoji || update.userDisplayName.slice(0, 2)}</div>
+        )}
         <div>
           <div className="update-card__meta">
             <span className="update-card__name">{update.userDisplayName}</span>
