@@ -8,7 +8,7 @@ import { UserProfileProvider } from './contexts/UserProfileContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/app-teamupdates">
       <UserProfileProvider>
         <UpdatesProvider>
           <App />
