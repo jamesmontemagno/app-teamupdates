@@ -135,3 +135,8 @@ When adding a server:
 - **CSS**: BEM-style naming in modules (`component__element--modifier`)
 - **Type annotations**: Explicit on all function params/returns
 - **Error handling**: Try/catch with user-friendly messages (see geocoding examples)
+
+
+## Linting
+
+Always run `npm run lint` to ensure code quality before commits.

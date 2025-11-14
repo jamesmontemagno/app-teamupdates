@@ -22,20 +22,20 @@ export function TimelinePage() {
   const { updates, addUpdate } = useUpdates();
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const highlight = searchParams.get('highlight');
+  const [highlightId, setHighlightId] = useState<string | null>(highlight);
   const navigate = useNavigate();
 
   const filtered = useMemo(() => filterUpdates(updates, filters), [updates, filters]);
   const grouped = useMemo(() => groupUpdatesByDay(filtered), [filtered]);
 
   useEffect(() => {
-    const highlight = searchParams.get('highlight');
     if (highlight) {
-      setHighlightId(highlight);
-      setTimeout(() => setHighlightId(null), 3500);
+      const timer = setTimeout(() => setHighlightId(null), 3500);
       setSearchParams({}, { replace: true });
+      return () => clearTimeout(timer);
     }
-  }, [searchParams, setSearchParams]);
+  }, [highlight, setSearchParams]);
 
   const handleCreate = (payload: ComposerPayload) => {
     addUpdate({

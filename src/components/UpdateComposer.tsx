@@ -285,6 +285,7 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
     return () => {
       resetCaptureSession();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showCaptureModal, captureMode]);
 
   useEffect(() => {

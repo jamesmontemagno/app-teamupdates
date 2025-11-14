@@ -8,18 +8,12 @@ import styles from './App.module.css'
 
 export function App() {
   const navigate = useNavigate()
-  const [showWelcome, setShowWelcome] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(() => isNewUser())
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('theme')
     if (saved === 'dark' || saved === 'light') return saved
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   })
-
-  useEffect(() => {
-    if (isNewUser()) {
-      setShowWelcome(true)
-    }
-  }, [])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)

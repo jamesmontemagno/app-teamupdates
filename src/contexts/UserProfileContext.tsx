@@ -12,10 +12,12 @@ const defaultProfile: UserProfile = {
   randomizationRadius: 100,
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function isNewUser(): boolean {
   return !localStorage.getItem(ONBOARDING_KEY);
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function markUserOnboarded(): void {
   localStorage.setItem(ONBOARDING_KEY, 'true');
 }
@@ -108,6 +110,7 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
   return <UserProfileContext.Provider value={value}>{children}</UserProfileContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useUserProfile() {
   return useContext(UserProfileContext);
 }
