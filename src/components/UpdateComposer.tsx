@@ -542,7 +542,7 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
         onChange={(event) => setText(event.target.value)}
       />
 
-      <div className={styles['composer__media']}>
+      <div>
         <div className={styles['composer__media-actions']}>
           {voice.status === 'recording' ? (
             <button type="button" className="button button--soft" onClick={voice.stopRecording}>
