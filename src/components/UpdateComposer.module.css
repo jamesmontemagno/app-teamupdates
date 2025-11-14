@@ -76,10 +76,6 @@
   flex-wrap: wrap;
 }
 
-.composer__media {
-  /* container class for media controls; no additional styles yet */
-}
-
 .composer__media-actions {
   display: flex;
   gap: 12px;
