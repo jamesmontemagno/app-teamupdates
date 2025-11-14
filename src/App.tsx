@@ -4,21 +4,16 @@ import { MapPage } from './pages/MapPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { TimelinePage } from './pages/TimelinePage'
 import { isNewUser, markUserOnboarded } from './contexts/UserProfileContext'
+import styles from './App.module.css'
 
 export function App() {
   const navigate = useNavigate()
-  const [showWelcome, setShowWelcome] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(() => isNewUser())
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('theme')
     if (saved === 'dark' || saved === 'light') return saved
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   })
-
-  useEffect(() => {
-    if (isNewUser()) {
-      setShowWelcome(true)
-    }
-  }, [])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -37,6 +32,11 @@ export function App() {
     markUserOnboarded()
     setShowWelcome(false)
   }
+
+  const navLinkClassName = ({ isActive }: { isActive: boolean }) =>
+    isActive
+      ? `${styles['app-shell__link']} ${styles['app-shell__link--active']}`
+      : styles['app-shell__link']
 
   return (
     <>
@@ -61,36 +61,36 @@ export function App() {
           </div>
         </div>
       )}
-      <div className="app-shell">
-      <header className="app-shell__header">
-        <div className="app-shell__branding">
-          <p className="text text--muted">Team Updates</p>
-          <h1 className="app-shell__title">✨ Pulseboard</h1>
-        </div>
-        <nav className="app-shell__nav">
-          <NavLink to="/" end className={({ isActive }) => (isActive ? 'app-shell__link app-shell__link--active' : 'app-shell__link')}>
-            Timeline
-          </NavLink>
-          <NavLink to="/map" className={({ isActive }) => (isActive ? 'app-shell__link app-shell__link--active' : 'app-shell__link')}>
-            Map
-          </NavLink>
-          <NavLink to="/profile" className={({ isActive }) => (isActive ? 'app-shell__link app-shell__link--active' : 'app-shell__link')}>
-            Profile
-          </NavLink>
-          <button onClick={toggleTheme} className="theme-toggle" aria-label="Toggle theme">
-            {theme === 'light' ? '🌙' : '☀️'}
-          </button>
-        </nav>
-      </header>
+      <div className={styles['app-shell']}>
+        <header className={styles['app-shell__header']}>
+          <div className={styles['app-shell__branding']}>
+            <p className="text text--muted">Team Updates</p>
+            <h1 className={styles['app-shell__title']}>✨ Pulseboard</h1>
+          </div>
+          <nav className={styles['app-shell__nav']}>
+            <NavLink to="/" end className={navLinkClassName}>
+              Timeline
+            </NavLink>
+            <NavLink to="/map" className={navLinkClassName}>
+              Map
+            </NavLink>
+            <NavLink to="/profile" className={navLinkClassName}>
+              Profile
+            </NavLink>
+            <button onClick={toggleTheme} className={styles['theme-toggle']} aria-label="Toggle theme">
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
+          </nav>
+        </header>
 
-      <main className="app-shell__content">
-        <Routes>
-          <Route path="/" element={<TimelinePage />} />
-          <Route path="/map" element={<MapPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-        </Routes>
-      </main>
-    </div>
+        <main className={styles['app-shell__content']}>
+          <Routes>
+            <Route path="/" element={<TimelinePage />} />
+            <Route path="/map" element={<MapPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+          </Routes>
+        </main>
+      </div>
     </>
   )
 }

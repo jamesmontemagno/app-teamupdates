@@ -5,10 +5,12 @@ import { useUpdates } from '../contexts/UpdatesContext';
 import { FilterControls } from '../components/FilterControls';
 import { filterUpdates } from '../utils/filters';
 import type { FilterState } from '../types';
+import layoutStyles from './PageLayout.module.css';
+import mapStyles from './MapPage.module.css';
 import 'leaflet/dist/leaflet.css';
 
 // Fix Leaflet icon issue
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -95,16 +97,16 @@ export function MapPage() {
   }, [locationUpdates, navigate]);
 
   return (
-    <div className="page page--map">
-      <div className="page__panel">
-        <div className="page__header">
-          <h1 className="page__title">Map</h1>
+    <div className={`${layoutStyles['page']} ${mapStyles['page--map']}`}>
+      <div className={layoutStyles['page__panel']}>
+        <div className={layoutStyles['page__header']}>
+          <h1 className={layoutStyles['page__title']}>Map</h1>
           <p className="text text--muted">{locationUpdates.length} geotagged updates</p>
         </div>
         <FilterControls updates={updates} filters={filters} onChange={setFilters} showLocationToggle={false} />
       </div>
-      <div className="map-shell">
-        <div ref={mapContainerRef} className="map-shell__map" />
+      <div className={mapStyles['map-shell']}>
+        <div ref={mapContainerRef} className={mapStyles['map-shell__map']} />
         <p className="text text--muted" style={{ 
           textAlign: 'center', 
           padding: '8px', 

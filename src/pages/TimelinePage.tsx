@@ -8,6 +8,7 @@ import { UpdateCard } from '../components/UpdateCard';
 import { filterUpdates } from '../utils/filters';
 import { friendlyDayLabel, groupUpdatesByDay } from '../utils/date';
 import type { FilterState } from '../types';
+import layoutStyles from './PageLayout.module.css';
 
 const defaultFilters: FilterState = {
   dayKey: 'all',
@@ -21,20 +22,20 @@ export function TimelinePage() {
   const { updates, addUpdate } = useUpdates();
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const highlight = searchParams.get('highlight');
+  const [highlightId, setHighlightId] = useState<string | null>(highlight);
   const navigate = useNavigate();
 
   const filtered = useMemo(() => filterUpdates(updates, filters), [updates, filters]);
   const grouped = useMemo(() => groupUpdatesByDay(filtered), [filtered]);
 
   useEffect(() => {
-    const highlight = searchParams.get('highlight');
     if (highlight) {
-      setHighlightId(highlight);
-      setTimeout(() => setHighlightId(null), 3500);
+      const timer = setTimeout(() => setHighlightId(null), 3500);
       setSearchParams({}, { replace: true });
+      return () => clearTimeout(timer);
     }
-  }, [searchParams, setSearchParams]);
+  }, [highlight, setSearchParams]);
 
   const handleCreate = (payload: ComposerPayload) => {
     addUpdate({
@@ -47,29 +48,29 @@ export function TimelinePage() {
   };
 
   return (
-    <div className="page">
-      <section className="page__panel">
+    <div className={layoutStyles['page']}>
+      <section className={layoutStyles['page__panel']}>
         <UpdateComposer onCreate={handleCreate} profile={profile} />
       </section>
 
-      <section className="page__panel">
-        <div className="page__header">
-          <h1 className="page__title">Timeline</h1>
+      <section className={layoutStyles['page__panel']}>
+        <div className={layoutStyles['page__header']}>
+          <h1 className={layoutStyles['page__title']}>Timeline</h1>
           <p className="text text--muted">{filtered.length} updates, {updates.length} total</p>
         </div>
         <FilterControls updates={updates} filters={filters} onChange={setFilters} />
       </section>
 
-      <section className="page__panel">
+      <section className={layoutStyles['page__panel']}>
         {Object.entries(grouped).length === 0 && (
           <p className="text text--muted">No updates yet. Drop the first one!</p>
         )}
         {Object.entries(grouped)
           .sort((a, b) => (a[0] < b[0] ? 1 : -1))
           .map(([dayKey, entries]) => (
-            <div key={dayKey} className="updates-group">
-              <h2 className="updates-group__heading">{friendlyDayLabel(dayKey)}</h2>
-              <div className="updates-list">
+            <div key={dayKey} className={layoutStyles['updates-group']}>
+              <h2 className={layoutStyles['updates-group__heading']}>{friendlyDayLabel(dayKey)}</h2>
+              <div className={layoutStyles['updates-list']}>
                 {entries.map((update) => (
                   <UpdateCard
                     key={update.id}

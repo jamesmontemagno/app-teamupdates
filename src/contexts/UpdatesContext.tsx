@@ -78,6 +78,7 @@ export function UpdatesProvider({ children }: { children: React.ReactNode }) {
   return <UpdatesContext.Provider value={value}>{children}</UpdatesContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useUpdates() {
   return useContext(UpdatesContext);
 }

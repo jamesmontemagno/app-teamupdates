@@ -87,7 +87,7 @@ export function useVoiceRecorder(maxSeconds = 90) {
           }
         }
       }, 200);
-    } catch (err) {
+    } catch {
       setError('Unable to start recording. Please allow microphone access.');
       setStatus('error');
     }

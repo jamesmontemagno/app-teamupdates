@@ -7,6 +7,7 @@ import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { randomizeCoordinates } from '../utils/randomizeLocation';
 import { geocodeAddress } from '../utils/geocoding';
+import styles from './UpdateComposer.module.css';
 
 export interface ComposerPayload {
   text: string;
@@ -284,6 +285,7 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
     return () => {
       resetCaptureSession();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showCaptureModal, captureMode]);
 
   useEffect(() => {
@@ -400,14 +402,14 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
   };
 
   return (
-    <div className="composer">
-      <div className="composer__header">
-        <div className="composer__greeting-row">
+    <div className={styles['composer']}>
+      <div className={styles['composer__header']}>
+        <div className={styles['composer__greeting-row']}>
           <div>
-            <p className="composer__greeting">Hey {profile.displayName} 👋 Share what you're up to.</p>
-            <p className="composer__note">All media stays on your device for now.</p>
+            <p className={styles['composer__greeting']}>Hey {profile.displayName} 👋 Share what you're up to.</p>
+            <p className={styles['composer__note']}>All media stays on your device for now.</p>
           </div>
-          <div className="composer__emoji-display">
+          <div className={styles['composer__emoji-display']}>
             <button 
               type="button" 
               className="emoji-button"
@@ -418,8 +420,8 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
             </button>
           </div>
         </div>
-        <div className="composer__options-row">
-          <div className="composer__chips">
+        <div className={styles['composer__options-row']}>
+          <div className={styles['composer__chips']}>
             {categoryOptions.map((option) => (
               <button
                 key={option.id}
@@ -431,7 +433,7 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
               </button>
             ))}
           </div>
-          <div className="composer__date-selector">
+          <div className={styles['composer__date-selector']}>
             <button
               type="button"
               className={`chip ${selectedDate === todayKey ? 'chip--active' : ''}`}
@@ -535,14 +537,14 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
       )}
 
       <textarea
-        className="composer__input"
+        className={styles['composer__input']}
         placeholder="What’s happening? "
         value={text}
         onChange={(event) => setText(event.target.value)}
       />
 
-      <div className="composer__media">
-        <div className="composer__media-actions">
+      <div>
+        <div className={styles['composer__media-actions']}>
           {voice.status === 'recording' ? (
             <button type="button" className="button button--soft" onClick={voice.stopRecording}>
               Stop recording
@@ -570,7 +572,7 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
             Use camera
           </button>
         </div>
-        <div className="composer__media-status">
+        <div className={styles['composer__media-status']}>
           {voice.status === 'recording' && <span>Recording {voice.elapsed.toFixed(0)}s</span>}
           {voice.error && <span className="text text--error">{voice.error}</span>}
           {voice.recorded && (
@@ -580,7 +582,7 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
       </div>
 
       {media.type !== 'none' && (
-        <div className="composer__media-preview">
+        <div className={styles['composer__media-preview']}>
           {media.type === 'audio' && media.dataUrl && (
             <audio controls src={media.dataUrl} />
           )}
@@ -599,8 +601,8 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
 
       {mediaError && <p className="text text--error">{mediaError}</p>}
 
-      <div className="composer__location">
-        <label className="composer__toggle">
+      <div className={styles['composer__location']}>
+        <label className={styles['composer__toggle']}>
           <input
             type="checkbox"
             checked={attachLocation}
@@ -609,8 +611,8 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
           Attach location
         </label>
         {attachLocation && (
-          <div className="composer__location-details">
-            <p className="composer__note">
+          <div className={styles['composer__location-details']}>
+            <p className={styles['composer__note']}>
               {geo.status === 'pending'
                 ? 'Requesting location…'
                 : geo.status === 'ready'
@@ -626,31 +628,31 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
               value={manualLabel}
               onChange={(event) => setManualLabel(event.target.value)}
               placeholder="Label (e.g., Home, Office)"
-              className="composer__location-input"
+              className={styles['composer__location-input']}
             />
             <div style={{ marginTop: '12px', borderTop: '1px solid #e0e0e0', paddingTop: '12px' }}>
-              <p className="composer__note" style={{ marginBottom: '8px' }}>Or enter a location manually:</p>
+              <p className={styles['composer__note']} style={{ marginBottom: '8px' }}>Or enter a location manually:</p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
                 <input
                   type="text"
                   value={manualCity}
                   onChange={(e) => setManualCity(e.target.value)}
                   placeholder="City"
-                  className="composer__location-input"
+                  className={styles['composer__location-input']}
                 />
                 <input
                   type="text"
                   value={manualState}
                   onChange={(e) => setManualState(e.target.value)}
                   placeholder="State"
-                  className="composer__location-input"
+                  className={styles['composer__location-input']}
                 />
                 <input
                   type="text"
                   value={manualCountry}
                   onChange={(e) => setManualCountry(e.target.value)}
                   placeholder="Country"
-                  className="composer__location-input"
+                  className={styles['composer__location-input']}
                 />
               </div>
               <button
@@ -677,7 +679,7 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
         )}
       </div>
 
-      <div className="composer__actions">
+      <div className={styles['composer__actions']}>
         <button type="button" className="button button--primary" onClick={handleSubmit} disabled={!isValid}>
           Post update
         </button>

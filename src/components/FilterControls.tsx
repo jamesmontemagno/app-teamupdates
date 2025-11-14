@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { friendlyDayLabel } from '../utils/date';
 import type { CategoryFilter, FilterState, MediaFilter, TeamUpdate } from '../types';
+import styles from './FilterControls.module.css';
 
 const categoryOptions: { id: CategoryFilter; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -32,9 +33,9 @@ export function FilterControls({ updates, filters, onChange, showLocationToggle 
   }, [updates]);
 
   return (
-    <div className="filters">
-      <div className="filters__row">
-        <div className="filters__group">
+    <div className={styles.filters}>
+      <div className={styles['filters__row']}>
+        <div className={styles['filters__group']}>
           {['all', ...dayOptions].map((dayKey) => (
             <button
               type="button"
@@ -48,8 +49,8 @@ export function FilterControls({ updates, filters, onChange, showLocationToggle 
         </div>
       </div>
 
-      <div className="filters__row">
-        <div className="filters__group">
+      <div className={styles['filters__row']}>
+        <div className={styles['filters__group']}>
           {categoryOptions.map((option) => (
             <button
               key={option.id}
@@ -63,8 +64,8 @@ export function FilterControls({ updates, filters, onChange, showLocationToggle 
         </div>
       </div>
 
-      <div className="filters__row">
-        <div className="filters__group">
+      <div className={styles['filters__row']}>
+        <div className={styles['filters__group']}>
           {mediaOptions.map((option) => (
             <button
               key={option.id}
@@ -77,7 +78,7 @@ export function FilterControls({ updates, filters, onChange, showLocationToggle 
           ))}
         </div>
         {showLocationToggle && (
-          <label className="toggle">
+          <label className={styles['toggle']}>
             <input
               type="checkbox"
               checked={filters.locationOnly}

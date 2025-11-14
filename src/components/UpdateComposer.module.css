@@ -1,0 +1,234 @@
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.composer__header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.composer__greeting-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.composer__emoji-display {
+  flex-shrink: 0;
+}
+
+.composer__options-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.composer__date-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.composer__greeting {
+  font-weight: 700;
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.composer__note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.composer__input {
+  width: 100%;
+  min-height: 140px;
+  border-radius: 20px;
+  border: 2px solid var(--border);
+  padding: 20px;
+  font-size: 1rem;
+  resize: vertical;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.composer__input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.composer__chips,
+.composer__date-chips {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.composer__media-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.composer__media-status {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  padding: 8px 0;
+}
+
+.composer__media-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--surface-muted);
+  border-radius: 16px;
+  border: 2px solid var(--border);
+}
+
+.composer__media-preview img,
+.composer__media-preview video {
+  width: 100%;
+  border-radius: 20px;
+  margin-top: 12px;
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+
+.composer__media-preview audio {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.composer__date {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.composer__date-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.composer__date-picker input {
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  padding: 10px 16px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.composer__date-picker input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.composer__location {
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+  background: var(--surface-muted);
+  transition: all 0.3s ease;
+}
+
+.composer__location:has(input[type="checkbox"]:checked) {
+  border-color: var(--accent-primary);
+  background: var(--surface);
+}
+
+.composer__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.composer__toggle input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.composer__location-details {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.composer__location-input {
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.composer__location-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.composer__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .composer {
+    gap: 20px;
+  }
+
+  .composer__greeting-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .composer__emoji-display {
+    align-self: flex-start;
+  }
+
+  .composer__options-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .composer__date-selector {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .composer__input {
+    min-height: 120px;
+    padding: 16px;
+  }
+}
