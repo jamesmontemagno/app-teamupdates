@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using TeamUpdates.Backend.Data;
 using TeamUpdates.Backend.Entities;
+using TeamUpdates.Backend.Hubs;
 using TeamUpdates.Backend.Models;
 using TeamUpdates.Backend.Services;
 
@@ -49,7 +51,8 @@ public static class UpdatesEndpoints
             Guid teamId,
             TeamUpdateRequest request,
             AppDbContext db,
-            ILocationRandomizer locationRandomizer) =>
+            ILocationRandomizer locationRandomizer,
+            IHubContext<UpdatesHub> hubContext) =>
         {
             // TODO: ValidateTeamMembership will use authenticated userId instead of request body
             var team = await db.Teams.FindAsync(teamId);
@@ -96,6 +99,9 @@ public static class UpdatesEndpoints
             
             db.TeamUpdates.Add(update);
             await db.SaveChangesAsync();
+            
+            // Emit SignalR event to notify clients of new update
+            await hubContext.Clients.Group(teamId.ToString()).SendAsync("UpdateCreated", update);
             
             return Results.Created($"/api/teams/{teamId}/updates/{update.Id}", update);
         });
