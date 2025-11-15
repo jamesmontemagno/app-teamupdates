@@ -1,0 +1,105 @@
+using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+using TeamUpdates.Backend.Data;
+using TeamUpdates.Backend.Entities;
+using TeamUpdates.Backend.Models;
+using TeamUpdates.Backend.Services;
+
+namespace TeamUpdates.Backend.Endpoints;
+
+public static class UpdatesEndpoints
+{
+    public static RouteGroupBuilder MapUpdatesEndpoints(this RouteGroupBuilder group)
+    {
+        group.MapGet("/", async (
+            Guid teamId,
+            AppDbContext db,
+            string? day = null,
+            string? category = null,
+            string? media = null,
+            bool locationOnly = false) =>
+        {
+            var query = db.TeamUpdates.Where(u => u.TeamId == teamId);
+            
+            if (day != null && day != "all")
+                query = query.Where(u => u.DayKey == day);
+            
+            if (category != null && category != "all")
+                query = query.Where(u => u.Category == category);
+            
+            if (media != null && media != "all")
+            {
+                if (media == "text")
+                    query = query.Where(u => u.MediaJson == null || u.MediaJson == "");
+                else
+                    query = query.Where(u => u.MediaJson != null && u.MediaJson.Contains($"\"type\":\"{media}\""));
+            }
+            
+            if (locationOnly)
+                query = query.Where(u => u.LocationJson != null);
+            
+            var updates = await query
+                .OrderByDescending(u => u.CreatedAt)
+                .ToListAsync();
+            
+            return Results.Ok(updates);
+        });
+
+        group.MapPost("/", async (
+            Guid teamId,
+            TeamUpdateRequest request,
+            AppDbContext db,
+            ILocationRandomizer locationRandomizer) =>
+        {
+            // TODO: ValidateTeamMembership will use authenticated userId instead of request body
+            var team = await db.Teams.FindAsync(teamId);
+            if (team == null)
+                return Results.NotFound(new { error = "Team not found" });
+            
+            var user = await db.UserProfiles.FindAsync(request.UserId);
+            if (user == null)
+                return Results.BadRequest(new { error = "User not found" });
+            
+            string? locationJson = null;
+            if (request.Location != null)
+            {
+                // Randomize location for privacy
+                var (randomLat, randomLng) = locationRandomizer.RandomizeCoordinates(
+                    request.Location.Lat,
+                    request.Location.Lng,
+                    user.RandomizationRadius);
+                
+                locationJson = JsonSerializer.Serialize(new
+                {
+                    lat = randomLat,
+                    lng = randomLng,
+                    label = request.Location.Label,
+                    accuracy = request.Location.Accuracy
+                });
+            }
+            
+            var update = new TeamUpdate
+            {
+                Id = Guid.NewGuid(),
+                TeamId = teamId,
+                UserId = request.UserId,
+                UserDisplayName = user.DisplayName,
+                UserEmoji = user.Emoji,
+                UserPhotoUrl = user.PhotoUrl,
+                CreatedAt = DateTime.UtcNow,
+                DayKey = request.DayKey,
+                Category = request.Category,
+                Text = request.Text,
+                MediaJson = request.Media != null ? JsonSerializer.Serialize(request.Media) : null,
+                LocationJson = locationJson
+            };
+            
+            db.TeamUpdates.Add(update);
+            await db.SaveChangesAsync();
+            
+            return Results.Created($"/api/teams/{teamId}/updates/{update.Id}", update);
+        });
+
+        return group;
+    }
+}
