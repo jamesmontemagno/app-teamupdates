@@ -9,13 +9,14 @@ export function Toaster() {
       toastOptions={{
         duration: 4000,
         style: {
-          background: 'var(--surface-secondary)',
+          background: 'var(--surface)',
           color: 'var(--text-primary)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: '8px',
+          border: '2px solid var(--border)',
+          borderRadius: '12px',
           padding: '12px 16px',
           fontSize: '14px',
           maxWidth: '400px',
+          boxShadow: 'var(--shadow-lg)',
         },
         success: {
           iconTheme: {

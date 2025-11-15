@@ -5,7 +5,7 @@
 }
 
 .card {
-  background: var(--surface-secondary);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 40px;
