@@ -115,47 +115,12 @@ function AppNavigation() {
 }
 
 function AppShell() {
-  const navigate = useNavigate()
-  const [showWelcome, setShowWelcome] = useState(() => isNewUser())
-
-  const handleGetStarted = () => {
-    markUserOnboarded()
-    setShowWelcome(false)
-    navigate('/profile')
-  }
-
-  const handleSkip = () => {
-    markUserOnboarded()
-    setShowWelcome(false)
-  }
-
   const location = useLocation()
   const isOnTeamRoute = location.pathname.startsWith('/teams/')
 
   return (
     <>
       <Toaster />
-      {showWelcome && (
-        <div className="modal-overlay" onClick={handleSkip}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2 className="modal-title">Welcome to Pulseboard! ✨</h2>
-            <p className="modal-text">
-              Stay connected with your team by sharing updates, wins, and blockers.
-            </p>
-            <p className="modal-text">
-              Before you get started, let's set up your profile so your team knows who you are.
-            </p>
-            <div className="modal-actions">
-              <button className="button button--primary" onClick={handleGetStarted}>
-                Set Up Profile
-              </button>
-              <button className="button button--soft" onClick={handleSkip}>
-                Skip for now
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       <div className={styles['app-shell']}>
         <header className={styles['app-shell__header']}>
           <div className={styles['app-shell__branding']}>
