@@ -30,11 +30,16 @@ function loadData<T>(key: string, defaultData: T[]): T[] {
   try {
     const stored = sessionStorage.getItem(key);
     if (stored) {
-      return JSON.parse(stored) as T[];
+      const parsed = JSON.parse(stored) as T[];
+      console.log(`Mock API: Loaded ${parsed.length} items from ${key}`);
+      return parsed;
     }
   } catch (error) {
     console.error(`Failed to load ${key}`, error);
   }
+  console.log(`Mock API: Using seed data for ${key} (${defaultData.length} items)`);
+  // Save seed data to sessionStorage for future use
+  saveData(key, defaultData);
   return defaultData;
 }
 
@@ -100,6 +105,13 @@ export async function mockJoinTeam(teamId: string, userId: string): Promise<void
   }
 }
 
+export async function mockLeaveTeam(teamId: string, userId: string): Promise<void> {
+  await delay();
+  const memberships = getMemberships();
+  const filtered = memberships.filter((m) => !(m.teamId === teamId && m.userId === userId));
+  saveData(STORAGE_KEY_MEMBERSHIPS, filtered);
+}
+
 // Profile API
 export async function mockGetProfile(userId: string): Promise<UserProfile> {
   await delay();
@@ -128,14 +140,8 @@ export async function mockCreateProfile(request: CreateProfileRequest): Promise<
   profiles.push(newProfile);
   saveData(STORAGE_KEY_PROFILES, profiles);
 
-  // Auto-join default team
-  const memberships = getMemberships();
-  memberships.push({
-    userId: newProfile.id,
-    teamId: DEFAULT_TEAM_ID,
-    joinedAt: new Date().toISOString(),
-  });
-  saveData(STORAGE_KEY_MEMBERSHIPS, memberships);
+  // Don't auto-join any team in mock mode
+  // Users must manually join teams
 
   return newProfile;
 }
@@ -175,7 +181,11 @@ export async function mockGetTeamUpdates(
   filters?: UpdateFilters
 ): Promise<TeamUpdate[]> {
   await delay();
-  let updates = getUpdates().filter((u) => u.teamId === teamId);
+  const allUpdates = getUpdates();
+  console.log(`Mock API: Getting updates for team ${teamId}, total updates: ${allUpdates.length}`);
+  
+  let updates = allUpdates.filter((u) => u.teamId === teamId);
+  console.log(`Mock API: Found ${updates.length} updates for team ${teamId}`);
 
   // Apply filters
   if (filters?.day && filters.day !== 'all') {
@@ -198,6 +208,7 @@ export async function mockGetTeamUpdates(
   // Sort by date descending
   updates.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+  console.log(`Mock API: Returning ${updates.length} updates after filters`);
   return updates;
 }
 

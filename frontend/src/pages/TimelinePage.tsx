@@ -60,7 +60,7 @@ export function TimelinePage() {
             <p className="text text--muted">{filtered.length} updates, {updates.length} total</p>
           </div>
           <button 
-            onClick={() => navigate('map')} 
+            onClick={() => navigate('../map')} 
             className="button button--soft"
             style={{ marginLeft: 'auto' }}
           >

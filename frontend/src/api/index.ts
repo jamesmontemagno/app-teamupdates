@@ -42,6 +42,10 @@ export async function joinTeam(teamId: string, userId: string): Promise<void> {
   return USE_MOCK_API ? mockApi.mockJoinTeam(teamId, userId) : teamsApi.joinTeam(teamId, userId);
 }
 
+export async function leaveTeam(teamId: string, userId: string): Promise<void> {
+  return USE_MOCK_API ? mockApi.mockLeaveTeam(teamId, userId) : teamsApi.leaveTeam(teamId, userId);
+}
+
 // Profile API
 export async function getProfile(userId: string): Promise<UserProfile> {
   return USE_MOCK_API ? mockApi.mockGetProfile(userId) : profileApi.getProfile(userId);
