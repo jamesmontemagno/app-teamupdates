@@ -31,8 +31,10 @@ export function TeamPage() {
   const highlight = searchParams.get('highlight');
   const [highlightId, setHighlightId] = useState<string | null>(highlight);
 
-  const currentFilters = viewMode === 'map' ? { ...filters, locationOnly: true } : filters;
-  const filtered = useMemo(() => filterUpdates(updates, currentFilters), [updates, currentFilters]);
+  const filtered = useMemo(() => {
+    const currentFilters = viewMode === 'map' ? { ...filters, locationOnly: true } : filters;
+    return filterUpdates(updates, currentFilters);
+  }, [updates, filters, viewMode]);
   const locationUpdates = filtered.filter((update) => update.location);
 
   useEffect(() => {

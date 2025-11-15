@@ -113,9 +113,6 @@ function AppNavigation() {
 }
 
 function AppShell() {
-  const location = useLocation()
-  const isOnTeamRoute = location.pathname.startsWith('/teams/')
-
   return (
     <>
       <Toaster />

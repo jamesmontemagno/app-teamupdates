@@ -17,7 +17,6 @@ import {
   mockProfiles,
   mockUpdates,
   mockMemberships,
-  DEFAULT_TEAM_ID,
 } from './seedData';
 
 const STORAGE_KEY_TEAMS = 'mockApi_teams';
