@@ -151,6 +151,7 @@ export function UpdatesProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(
     () => ({ updates, loading, error, addUpdate, refetch: fetchUpdates }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [updates, loading, error, fetchUpdates]
   );
 

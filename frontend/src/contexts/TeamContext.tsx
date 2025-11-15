@@ -51,6 +51,7 @@ export function TeamProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     fetchTeam();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId]);
 
   const value = useMemo(
@@ -61,6 +62,7 @@ export function TeamProvider({ children }: { children: React.ReactNode }) {
       error,
       refetch: fetchTeam,
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [teamId, team, loading, error]
   );
 
