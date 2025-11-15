@@ -3,6 +3,7 @@ using Scalar.AspNetCore;
 using System.Text.Json;
 using TeamUpdates.Backend.Data;
 using TeamUpdates.Backend.Endpoints;
+using TeamUpdates.Backend.Hubs;
 using TeamUpdates.Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,6 +33,9 @@ builder.Services.AddSingleton<IMediaStorageService, InMemoryMediaStorageService>
 builder.Services.AddHttpClient<IGeocodingService, GeocodingService>();
 builder.Services.AddSingleton<ILocationRandomizer, LocationRandomizer>();
 
+// Add SignalR
+builder.Services.AddSignalR();
+
 // Configure CORS for frontend
 builder.Services.AddCors(options =>
 {
@@ -39,7 +43,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins("http://localhost:5173")
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials(); // Required for SignalR
     });
 });
 
@@ -91,5 +96,8 @@ apiGroup.MapGroup("/profile")
 apiGroup.MapGroup("/")
     .MapUtilityEndpoints()
     .WithTags("Utility");
+
+// Map SignalR hub
+app.MapHub<UpdatesHub>("/hubs/updates");
 
 app.Run();

@@ -15,11 +15,11 @@ export function filterUpdates(updates: TeamUpdate[], filters: FilterState) {
     }
 
     if (filters.media !== 'all') {
-      if (filters.media === 'text' && update.media.type !== 'none') {
+      if (filters.media === 'text' && update.media && update.media.type !== 'none') {
         return false;
       }
 
-      if (filters.media !== 'text' && update.media.type !== filters.media) {
+      if (filters.media !== 'text' && (!update.media || update.media.type !== filters.media)) {
         return false;
       }
     }

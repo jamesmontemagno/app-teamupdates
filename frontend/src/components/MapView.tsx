@@ -1,12 +1,7 @@
+import { useEffect, useRef } from 'react';
 import L from 'leaflet';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useUpdates } from '../contexts/UpdatesContext';
-import { FilterControls } from '../components/FilterControls';
-import { filterUpdates } from '../utils/filters';
-import type { FilterState } from '../types';
-import layoutStyles from './PageLayout.module.css';
-import mapStyles from './MapPage.module.css';
+import type { TeamUpdate } from '../api/types';
+import styles from './MapView.module.css';
 import 'leaflet/dist/leaflet.css';
 
 // Fix Leaflet icon issue
@@ -17,28 +12,22 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-const defaultFilters: FilterState = {
-  dayKey: 'all',
-  category: 'all',
-  media: 'all',
-  locationOnly: true,
-};
-
 const defaultCenter: [number, number] = [37.8, -95.7];
 
-export function MapPage() {
-  const { updates } = useUpdates();
-  const [filters, setFilters] = useState<FilterState>(defaultFilters);
-  const navigate = useNavigate();
+interface MapViewProps {
+  updates: TeamUpdate[];
+  onViewInTimeline: (updateId: string) => void;
+}
+
+export function MapView({ updates, onViewInTimeline }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerLayerRef = useRef<L.LayerGroup | null>(null);
 
-  const filtered = useMemo(() => filterUpdates(updates, filters), [updates, filters]);
-  const locationUpdates = filtered.filter((update) => update.location);
-
+  // Initialize map
   useEffect(() => {
-    if (!mapContainerRef.current) return;
+    if (!mapContainerRef.current || mapRef.current) return;
+    
     const map = L.map(mapContainerRef.current, {
       center: defaultCenter,
       zoom: 4,
@@ -56,11 +45,15 @@ export function MapPage() {
     };
   }, []);
 
+  // Update map markers
   useEffect(() => {
     const map = mapRef.current;
     const markerLayer = markerLayerRef.current;
     if (!map || !markerLayer) return;
+    
     markerLayer.clearLayers();
+
+    const locationUpdates = updates.filter((update) => update.location);
 
     if (locationUpdates.length === 0) {
       map.setView(defaultCenter, 4);
@@ -77,14 +70,14 @@ export function MapPage() {
       heading.textContent = update.userDisplayName;
       const body = document.createElement('p');
       body.textContent = update.text;
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'button button--link';
-      button.textContent = 'View in timeline';
-      button.addEventListener('click', () => navigate(`/?highlight=${update.id}`));
+      const viewButton = document.createElement('button');
+      viewButton.type = 'button';
+      viewButton.className = 'button button--link';
+      viewButton.textContent = 'View in timeline';
+      viewButton.addEventListener('click', () => onViewInTimeline(update.id));
       content.appendChild(heading);
       content.appendChild(body);
-      content.appendChild(button);
+      content.appendChild(viewButton);
 
       marker.bindPopup(content);
       marker.addTo(markerLayer);
@@ -94,29 +87,20 @@ export function MapPage() {
     if (bounds.isValid()) {
       map.fitBounds(bounds, { maxZoom: 13, padding: [50, 50] });
     }
-  }, [locationUpdates, navigate]);
+  }, [updates, onViewInTimeline]);
 
   return (
-    <div className={`${layoutStyles['page']} ${mapStyles['page--map']}`}>
-      <div className={layoutStyles['page__panel']}>
-        <div className={layoutStyles['page__header']}>
-          <h1 className={layoutStyles['page__title']}>Map</h1>
-          <p className="text text--muted">{locationUpdates.length} geotagged updates</p>
-        </div>
-        <FilterControls updates={updates} filters={filters} onChange={setFilters} showLocationToggle={false} />
-      </div>
-      <div className={mapStyles['map-shell']}>
-        <div ref={mapContainerRef} className={mapStyles['map-shell__map']} />
-        <p className="text text--muted" style={{ 
-          textAlign: 'center', 
-          padding: '8px', 
-          fontSize: '0.875rem',
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          borderTop: '1px solid #e0e0e0'
-        }}>
-          Locations are randomized for privacy
-        </p>
-      </div>
+    <div className={styles['map-shell']}>
+      <div ref={mapContainerRef} className={styles['map-shell__map']} />
+      <p className="text text--muted" style={{ 
+        textAlign: 'center', 
+        padding: '8px', 
+        fontSize: '0.875rem',
+        backgroundColor: 'var(--surface)',
+        borderTop: '1px solid var(--border)'
+      }}>
+        Locations are randomized for privacy
+      </p>
     </div>
   );
 }
