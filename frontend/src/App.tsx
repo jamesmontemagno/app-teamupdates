@@ -1,12 +1,76 @@
-import { NavLink, Route, Routes, useNavigate } from 'react-router-dom'
+import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { MapPage } from './pages/MapPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { TimelinePage } from './pages/TimelinePage'
+import { LandingPage } from './pages/LandingPage'
+import { TeamBrowserPage } from './pages/TeamBrowserPage'
+import { ProfileSetupPage } from './pages/ProfileSetupPage'
+import { TeamProvider, useTeam } from './contexts/TeamContext'
 import { isNewUser, markUserOnboarded } from './contexts/UserProfileContext'
 import { Toaster } from './components/Toaster'
-import { isMockMode } from './api'
+import { isMockMode, getUserTeams } from './api'
 import styles from './App.module.css'
+
+const USER_ID_KEY = 'teamUpdatesUserId'
+
+function TeamNavbar() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { team } = useTeam()
+  const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string }>>([])
+  const [showDropdown, setShowDropdown] = useState(false)
+
+  useEffect(() => {
+    const userId = localStorage.getItem(USER_ID_KEY)
+    if (userId) {
+      getUserTeams(userId).then(setUserTeams).catch(console.error)
+    }
+  }, [])
+
+  const isOnTeamRoute = location.pathname.startsWith('/teams/')
+
+  if (!isOnTeamRoute) return null
+
+  return (
+    <div className={styles['team-navbar']}>
+      <div className={styles['team-dropdown']}>
+        <button
+          onClick={() => setShowDropdown(!showDropdown)}
+          className={styles['team-dropdown-button']}
+        >
+          {team ? team.name : 'Select Team'} ▼
+        </button>
+        {showDropdown && (
+          <div className={styles['team-dropdown-menu']}>
+            {userTeams.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => {
+                  navigate(`/teams/${t.id}/timeline`)
+                  setShowDropdown(false)
+                }}
+                className={styles['team-dropdown-item']}
+              >
+                {t.name}
+              </button>
+            ))}
+            <div className={styles['team-dropdown-divider']} />
+            <button
+              onClick={() => {
+                navigate('/teams')
+                setShowDropdown(false)
+              }}
+              className={styles['team-dropdown-item']}
+            >
+              Browse Teams
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export function App() {
   const navigate = useNavigate()
@@ -40,6 +104,9 @@ export function App() {
       ? `${styles['app-shell__link']} ${styles['app-shell__link--active']}`
       : styles['app-shell__link']
 
+  const location = useLocation()
+  const isOnTeamRoute = location.pathname.startsWith('/teams/')
+
   return (
     <>
       <Toaster />
@@ -71,33 +138,58 @@ export function App() {
             <h1 className={styles['app-shell__title']}>✨ Pulseboard</h1>
           </div>
           <nav className={styles['app-shell__nav']}>
-            <NavLink to="/" end className={navLinkClassName}>
-              Timeline
-            </NavLink>
-            <NavLink to="/map" className={navLinkClassName}>
-              Map
-            </NavLink>
-            <NavLink to="/profile" className={navLinkClassName}>
-              Profile
-            </NavLink>
+            {!isOnTeamRoute && (
+              <>
+                <NavLink to="/" end className={navLinkClassName}>
+                  Home
+                </NavLink>
+                <NavLink to="/teams" className={navLinkClassName}>
+                  Teams
+                </NavLink>
+              </>
+            )}
+            {isOnTeamRoute && (
+              <>
+                <NavLink to="timeline" end className={navLinkClassName}>
+                  Timeline
+                </NavLink>
+                <NavLink to="map" className={navLinkClassName}>
+                  Map
+                </NavLink>
+                <NavLink to="profile" className={navLinkClassName}>
+                  Profile
+                </NavLink>
+              </>
+            )}
             <button onClick={toggleTheme} className={styles['theme-toggle']} aria-label="Toggle theme">
               {theme === 'light' ? '🌙' : '☀️'}
             </button>
           </nav>
         </header>
 
+        <TeamNavbar />
+
         {isMockMode() && (
           <div className={styles['mock-mode-banner']}>
             🔧 Mock Mode - Using Sample Data
-            <a href="#teams" className={styles['mock-mode-link']}>Skip to Teams</a>
+            <a href="/teams" className={styles['mock-mode-link']}>Skip to Teams</a>
           </div>
         )}
 
         <main className={styles['app-shell__content']}>
           <Routes>
-            <Route path="/" element={<TimelinePage />} />
-            <Route path="/map" element={<MapPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/teams" element={<TeamBrowserPage />} />
+            <Route path="/profile/new" element={<ProfileSetupPage />} />
+            <Route path="/teams/:teamId/*" element={
+              <TeamProvider>
+                <Routes>
+                  <Route path="timeline" element={<TimelinePage />} />
+                  <Route path="map" element={<MapPage />} />
+                  <Route path="profile" element={<ProfilePage />} />
+                </Routes>
+              </TeamProvider>
+            } />
           </Routes>
         </main>
       </div>

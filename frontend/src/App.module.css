@@ -154,6 +154,71 @@
   opacity: 0.8;
 }
 
+.team-navbar {
+  background: var(--surface-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 40px;
+  z-index: 99;
+}
+
+.team-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.team-dropdown-button {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.team-dropdown-button:hover {
+  border-color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.team-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 200px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 8px;
+  z-index: 1000;
+}
+
+.team-dropdown-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.team-dropdown-item:hover {
+  background: var(--surface-muted);
+}
+
+.team-dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
 .app-shell__content {
   padding: 40px;
   display: flex;
