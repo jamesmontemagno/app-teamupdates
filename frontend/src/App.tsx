@@ -137,9 +137,11 @@ function AppShell() {
             <Route path="/profile/new" element={<ProfileSetupPage />} />
             <Route path="/profile/edit" element={<ProfilePage />} />
             <Route path="/teams/:teamId" element={
-              <UpdatesProvider>
-                <TeamPage />
-              </UpdatesProvider>
+              <TeamProvider>
+                <UpdatesProvider>
+                  <TeamPage />
+                </UpdatesProvider>
+              </TeamProvider>
             } />
           </Routes>
         </main>
@@ -156,9 +158,5 @@ function AppShell() {
 }
 
 export function App() {
-  return (
-    <TeamProvider>
-      <AppShell />
-    </TeamProvider>
-  )
+  return <AppShell />
 }

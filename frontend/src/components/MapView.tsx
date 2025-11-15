@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import type { TeamUpdate } from '../api/types';
-import mapStyles from '../pages/MapPage.module.css';
+import styles from './MapView.module.css';
 import 'leaflet/dist/leaflet.css';
 
 // Fix Leaflet icon issue
@@ -90,8 +90,8 @@ export function MapView({ updates, onViewInTimeline }: MapViewProps) {
   }, [updates, onViewInTimeline]);
 
   return (
-    <div className={mapStyles['map-shell']}>
-      <div ref={mapContainerRef} className={mapStyles['map-shell__map']} />
+    <div className={styles['map-shell']}>
+      <div ref={mapContainerRef} className={styles['map-shell__map']} />
       <p className="text text--muted" style={{ 
         textAlign: 'center', 
         padding: '8px', 
