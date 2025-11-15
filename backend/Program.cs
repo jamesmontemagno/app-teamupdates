@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 using System.Text.Json;
 using TeamUpdates.Backend.Data;
 using TeamUpdates.Backend.Endpoints;
@@ -64,6 +65,7 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseCors();
