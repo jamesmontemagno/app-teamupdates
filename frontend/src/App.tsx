@@ -7,6 +7,7 @@ import { LandingPage } from './pages/LandingPage'
 import { TeamBrowserPage } from './pages/TeamBrowserPage'
 import { ProfileSetupPage } from './pages/ProfileSetupPage'
 import { TeamProvider, useTeam } from './contexts/TeamContext'
+import { UpdatesProvider } from './contexts/UpdatesContext'
 import { isNewUser, markUserOnboarded } from './contexts/UserProfileContext'
 import { Toaster } from './components/Toaster'
 import { isMockMode, getUserTeams } from './api'
@@ -183,11 +184,13 @@ export function App() {
             <Route path="/profile/new" element={<ProfileSetupPage />} />
             <Route path="/teams/:teamId/*" element={
               <TeamProvider>
-                <Routes>
-                  <Route path="timeline" element={<TimelinePage />} />
-                  <Route path="map" element={<MapPage />} />
-                  <Route path="profile" element={<ProfilePage />} />
-                </Routes>
+                <UpdatesProvider>
+                  <Routes>
+                    <Route path="timeline" element={<TimelinePage />} />
+                    <Route path="map" element={<MapPage />} />
+                    <Route path="profile" element={<ProfilePage />} />
+                  </Routes>
+                </UpdatesProvider>
               </TeamProvider>
             } />
           </Routes>

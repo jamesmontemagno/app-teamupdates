@@ -59,15 +59,15 @@ export function UpdateCard({ update, isHighlighted, onViewOnMap }: UpdateCardPro
 
       <p className={styles['update-card__text']}>{update.text}</p>
 
-      {update.media.type === 'audio' && update.media.dataUrl && (
+      {update.media && update.media.type === 'audio' && update.media.dataUrl && (
         <audio controls className={styles['update-card__audio']} src={update.media.dataUrl} />
       )}
 
-      {update.media.type === 'image' && update.media.dataUrl && (
+      {update.media && update.media.type === 'image' && update.media.dataUrl && (
         <img className={styles['update-card__image']} src={update.media.dataUrl} alt="Update media" />
       )}
 
-      {update.media.type === 'video' && update.media.dataUrl && (
+      {update.media && update.media.type === 'video' && update.media.dataUrl && (
         <video className={styles['update-card__video']} src={update.media.dataUrl} controls preload="metadata" />
       )}
 

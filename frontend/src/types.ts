@@ -18,6 +18,7 @@ export interface LocationPin {
 
 export interface TeamUpdate {
   id: string;
+  teamId: string;
   userId: string;
   userDisplayName: string;
   userEmoji: string;
@@ -26,7 +27,7 @@ export interface TeamUpdate {
   dayKey: string;
   category: Category;
   text: string;
-  media: MediaAttachment;
+  media?: MediaAttachment;
   location?: LocationPin;
 }
 
