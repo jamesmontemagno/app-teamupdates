@@ -45,6 +45,7 @@ builder.Services.AddCors(options =>
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.SerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
 
 // TODO: Add authentication middleware here (GitHub OAuth)
