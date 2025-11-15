@@ -5,8 +5,64 @@ on:
     branches: [main]
 
 jobs:
-  build-and-lint:
+  detect-changes:
     runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Detect changed files
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'apphost.cs'
+              - 'apphost.run.json'
+            frontend:
+              - 'frontend/**'
+
+  build-backend:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore .NET dependencies
+        run: dotnet restore
+        working-directory: ./backend
+
+      - name: Build .NET backend
+        run: dotnet build --no-restore --configuration Release
+        working-directory: ./backend
+
+      - name: Run .NET tests
+        run: dotnet test --no-build --configuration Release --verbosity normal
+        working-directory: ./backend
+
+      - name: Upload backend build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-build
+          path: backend/bin/Release/
+          retention-days: 7
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
 
     steps:
       - name: Checkout code
@@ -19,21 +75,21 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         run: npm ci
         working-directory: ./frontend
 
-      - name: Run linter
+      - name: Run frontend linter
         run: npm run lint
         working-directory: ./frontend
 
-      - name: Build project
+      - name: Build frontend project
         run: npm run build
         working-directory: ./frontend
 
-      - name: Upload build artifacts
+      - name: Upload frontend build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist
+          name: frontend-dist
           path: frontend/dist/
           retention-days: 7

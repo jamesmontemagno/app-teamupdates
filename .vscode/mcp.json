@@ -1,0 +1,14 @@
+{
+	"servers": {
+		"css": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"css-mcp"
+			],
+			"env": {},
+			"type": "stdio"
+		}
+	},
+	"inputs": []
+}
