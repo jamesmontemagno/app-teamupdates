@@ -632,7 +632,7 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
             />
             <div style={{ marginTop: '12px', borderTop: '1px solid #e0e0e0', paddingTop: '12px' }}>
               <p className={styles['composer__note']} style={{ marginBottom: '8px' }}>Or enter a location manually:</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '8px' }}>
                 <input
                   type="text"
                   value={manualCity}

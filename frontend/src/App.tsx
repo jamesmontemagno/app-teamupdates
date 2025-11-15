@@ -1,14 +1,12 @@
 import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { MapPage } from './pages/MapPage'
 import { ProfilePage } from './pages/ProfilePage'
-import { TimelinePage } from './pages/TimelinePage'
+import { TeamPage } from './pages/TeamPage'
 import { LandingPage } from './pages/LandingPage'
 import { TeamBrowserPage } from './pages/TeamBrowserPage'
 import { ProfileSetupPage } from './pages/ProfileSetupPage'
 import { TeamProvider, useTeam } from './contexts/TeamContext'
 import { UpdatesProvider } from './contexts/UpdatesContext'
-import { isNewUser, markUserOnboarded } from './contexts/UserProfileContext'
 import { Toaster } from './components/Toaster'
 import { isMockMode, getUserTeams } from './api'
 import styles from './App.module.css'
@@ -138,13 +136,9 @@ function AppShell() {
             <Route path="/teams" element={<TeamBrowserPage />} />
             <Route path="/profile/new" element={<ProfileSetupPage />} />
             <Route path="/profile/edit" element={<ProfilePage />} />
-            <Route path="/teams/:teamId/*" element={
+            <Route path="/teams/:teamId" element={
               <UpdatesProvider>
-                <Routes>
-                  <Route index element={<TimelinePage />} />
-                  <Route path="timeline" element={<TimelinePage />} />
-                  <Route path="map" element={<MapPage />} />
-                </Routes>
+                <TeamPage />
               </UpdatesProvider>
             } />
           </Routes>

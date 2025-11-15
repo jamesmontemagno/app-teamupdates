@@ -161,11 +161,12 @@ Edit `backend/appsettings.json`:
 ## Architecture notes
 
 ### Frontend Architecture
-- **React Router** powers the `/` timeline, `/map`, and `/profile` routes
-- **Context providers** manage user profiles and updates store
+- **React Router** manages routing with `/teams/:teamId` for team pages
+- **Context providers** manage user profiles, team context, and updates
 - **API Client Layer** with automatic mode switching (real/mock)
 - **SignalR Integration** for real-time update notifications (real mode only)
-- **Leaflet/React-Leaflet** for interactive map view
+- **Component-based UI**: TeamHeader, TimelineView, MapView, UpdateComposerModal
+- **Leaflet** for interactive map view
 - **Custom hooks** (`useVoiceRecorder`, `useGeolocation`) encapsulate browser APIs
 - **Toast notifications** for user feedback on API operations
 
@@ -200,6 +201,10 @@ Frontend → API Client → Mock API Implementation
 - `src/api/index.ts` - API factory with mode switching
 - `src/api/mock/` - Mock API implementation with sample data
 - `src/api/signalr.ts` - SignalR connection manager
+- `src/components/TeamHeader.tsx` - Team page header with view toggle
+- `src/components/TimelineView.tsx` - Timeline updates display
+- `src/components/MapView.tsx` - Leaflet map with markers
+- `src/components/UpdateComposerModal.tsx` - Add update modal
 - `src/components/Toaster.tsx` - Toast notification wrapper
 - `src/utils/toast.ts` - Toast helper functions
 
@@ -330,10 +335,11 @@ aspire run
 ## Next steps
 
 - **Authentication**: Add GitHub OAuth integration
-- **Team Management**: Build team browser and invitation flows
-- **Profile Setup**: Create dedicated profile setup page
-- **URL-based Routing**: Implement team-specific routes (`/teams/:teamId/timeline`)
+- **Team Creation**: Allow users to create new teams
+- **Team Invitations**: Implement private team invitation system
 - **Cloud Storage**: Replace base64 media with Azure Blob Storage
 - **Production Database**: Configure SQL Server for production deployment
 - **Rate Limiting**: Add API rate limiting for external geocoding
 - **Caching**: Implement Redis for distributed caching
+- **Reactions**: Add emoji reactions to updates
+- **Comments**: Enable threaded discussions on updates

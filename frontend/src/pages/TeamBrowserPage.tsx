@@ -68,7 +68,7 @@ export function TeamBrowserPage() {
   };
 
   const handleTeamClick = (teamId: string) => {
-    navigate(`/teams/${teamId}/timeline`);
+    navigate(`/teams/${teamId}`);
   };
 
   const isUserMember = (teamId: string) => {

@@ -45,6 +45,9 @@ export function ProfilePage() {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+
   const handleSave = () => {
     if (!displayName.trim()) return;
     setSaved(true);
@@ -87,9 +90,6 @@ export function ProfilePage() {
     } finally {
       setLeaving(false);
     }
-  };  photoUrl,
-    });
-    setTimeout(() => setSaved(false), 2000);
   };
 
   const handleGeocode = async () => {
@@ -468,6 +468,34 @@ export function ProfilePage() {
             Adds random offset to protect privacy (0 = exact location)
           </p>
         </label>
+
+        <button
+          type="button"
+          className="button button--soft"
+          onClick={handleGeocode}
+          disabled={geocoding || (!city && !state && !country)}
+        >
+          {geocoding ? 'Geocoding...' : 'Geocode Location'}
+        </button>
+
+        {geocodeError && (
+          <p className="text text--error" style={{ marginTop: '8px' }}>
+            {geocodeError}
+          </p>
+        )}
+
+        {geocodeSuccess && profile.defaultLocation && (
+          <p className="text" style={{ marginTop: '8px', color: '#2a9d8f' }}>
+            ✓ Location geocoded: {profile.defaultLocation.lat.toFixed(4)}, {profile.defaultLocation.lng.toFixed(4)}
+          </p>
+        )}
+
+        {profile.defaultLocation && (
+          <div style={{ marginTop: '16px', height: '200px', borderRadius: '8px', overflow: 'hidden' }}>
+            <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
+          </div>
+        )}
+
         <button 
           type="button" 
           className="button button--primary" 
@@ -500,34 +528,6 @@ export function ProfilePage() {
             </button>
           </div>
         )}
-      </div>
-    </div>
-  );
-}         <p className="text text--error" style={{ marginTop: '8px' }}>
-            {geocodeError}
-          </p>
-        )}
-
-        {geocodeSuccess && profile.defaultLocation && (
-          <p className="text" style={{ marginTop: '8px', color: '#2a9d8f' }}>
-            ✓ Location geocoded: {profile.defaultLocation.lat.toFixed(4)}, {profile.defaultLocation.lng.toFixed(4)}
-          </p>
-        )}
-
-        {profile.defaultLocation && (
-          <div style={{ marginTop: '16px', height: '200px', borderRadius: '8px', overflow: 'hidden' }}>
-            <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
-          </div>
-        )}
-
-        <button 
-          type="button" 
-          className="button button--primary" 
-          onClick={handleSave}
-          disabled={saved || !displayName.trim()}
-        >
-          {saved ? '✓ Saved!' : 'Save profile'}
-        </button>
       </div>
     </div>
   );
