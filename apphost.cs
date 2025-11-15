@@ -8,10 +8,12 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddDockerComposeEnvironment("dc");
 
-var frontend = builder.AddViteApp("frontend", "./frontend");
-
 // Add backend API
 var backend = builder.AddProject("backend", "./backend/TeamUpdates.Backend.csproj");
+
+var frontend = builder.AddViteApp("frontend", "./frontend")
+.WithReference(backend);
+
 
 builder.AddYarp("app")
        .WithConfiguration(c =>
