@@ -11,25 +11,31 @@ Pulseboard is a lightweight team-updating console: your crew can post text, audi
 
 ## Getting started
 
-1. Install dependencies:
+1. Navigate to the frontend directory:
+
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
 
    ```bash
    npm install
    ```
 
-2. Run the dev server:
+3. Run the dev server:
 
    ```bash
    npm run dev -- --host
    ```
 
-3. Build for production:
+4. Build for production:
 
    ```bash
    npm run build
    ```
 
-4. Preview a production build locally:
+5. Preview a production build locally:
 
    ```bash
    npm run preview
