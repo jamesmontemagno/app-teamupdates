@@ -7,7 +7,8 @@ export default defineConfig({
   base: '/app-teamupdates/',
   server: {
     allowedHosts: ['host.docker.internal'],
-    proxy: {
+    // Only enable proxy if NOT in mock mode
+    proxy: process.env.VITE_USE_MOCK_API === 'true' ? undefined : {
       // Proxy API requests to backend when running standalone
       // In Aspire mode, YARP handles this routing
       '/api': {

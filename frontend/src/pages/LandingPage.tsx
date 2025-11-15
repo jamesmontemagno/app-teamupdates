@@ -1,6 +1,5 @@
 // Marketing landing page
 
-import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './LandingPage.module.css';
 
@@ -8,17 +7,14 @@ const USER_ID_KEY = 'teamUpdatesUserId';
 
 export function LandingPage() {
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Redirect to teams if user already has a profile
-    const userId = localStorage.getItem(USER_ID_KEY);
-    if (userId) {
-      navigate('/teams');
-    }
-  }, [navigate]);
+  const hasAccount = localStorage.getItem(USER_ID_KEY);
 
   const handleGetStarted = () => {
-    navigate('/profile/new');
+    if (hasAccount) {
+      navigate('/teams');
+    } else {
+      navigate('/profile/new');
+    }
   };
 
   return (
@@ -33,7 +29,7 @@ export function LandingPage() {
             Share updates with voice, video, and location. See what matters on a timeline or map view.
           </p>
           <button onClick={handleGetStarted} className={styles['cta-button']}>
-            Create Profile & Join a Team
+            {hasAccount ? 'Browse Teams' : 'Create Profile & Join a Team'}
           </button>
         </div>
         <div className={styles['hero-visual']}>
@@ -111,9 +107,9 @@ export function LandingPage() {
       {/* Final CTA */}
       <section className={styles['final-cta']}>
         <h2>Ready to Get Started?</h2>
-        <p>Create your profile and join your team in seconds.</p>
+        <p>{hasAccount ? 'Browse teams and start sharing updates.' : 'Create your profile and join your team in seconds.'}</p>
         <button onClick={handleGetStarted} className={styles['cta-button']}>
-          Create Profile & Join a Team
+          {hasAccount ? 'Browse Teams' : 'Create Profile & Join a Team'}
         </button>
       </section>
     </div>

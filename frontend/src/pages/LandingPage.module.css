@@ -75,7 +75,7 @@
 }
 
 .preview-card {
-  background: var(--surface-secondary);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px 24px;
@@ -99,7 +99,6 @@
 /* Features Section */
 .features {
   padding: 80px 40px;
-  background: var(--surface-secondary);
 }
 
 .section-title {
@@ -184,7 +183,6 @@
 .final-cta {
   padding: 80px 40px;
   text-align: center;
-  background: var(--gradient-panel);
 }
 
 .final-cta h2 {

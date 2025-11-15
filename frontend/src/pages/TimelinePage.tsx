@@ -55,8 +55,17 @@ export function TimelinePage() {
 
       <section className={layoutStyles['page__panel']}>
         <div className={layoutStyles['page__header']}>
-          <h1 className={layoutStyles['page__title']}>Timeline</h1>
-          <p className="text text--muted">{filtered.length} updates, {updates.length} total</p>
+          <div>
+            <h1 className={layoutStyles['page__title']}>Timeline</h1>
+            <p className="text text--muted">{filtered.length} updates, {updates.length} total</p>
+          </div>
+          <button 
+            onClick={() => navigate('map')} 
+            className="button button--soft"
+            style={{ marginLeft: 'auto' }}
+          >
+            🗺️ Map View
+          </button>
         </div>
         <FilterControls updates={updates} filters={filters} onChange={setFilters} />
       </section>

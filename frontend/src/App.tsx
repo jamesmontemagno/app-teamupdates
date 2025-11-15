@@ -18,7 +18,7 @@ const USER_ID_KEY = 'teamUpdatesUserId'
 function TeamNavbar() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { team } = useTeam()
+  const { team, teamId } = useTeam()
   const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string }>>([])
   const [showDropdown, setShowDropdown] = useState(false)
 
@@ -31,7 +31,7 @@ function TeamNavbar() {
 
   const isOnTeamRoute = location.pathname.startsWith('/teams/')
 
-  if (!isOnTeamRoute) return null
+  if (!isOnTeamRoute || !teamId) return null
 
   return (
     <div className={styles['team-navbar']}>
@@ -73,9 +73,7 @@ function TeamNavbar() {
   )
 }
 
-export function App() {
-  const navigate = useNavigate()
-  const [showWelcome, setShowWelcome] = useState(() => isNewUser())
+function AppNavigation() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('theme')
     if (saved === 'dark' || saved === 'light') return saved
@@ -89,6 +87,37 @@ export function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light')
 
+  const navLinkClassName = ({ isActive }: { isActive: boolean }) =>
+    isActive
+      ? `${styles['app-shell__link']} ${styles['app-shell__link--active']}`
+      : styles['app-shell__link']
+
+  const hasProfile = localStorage.getItem(USER_ID_KEY)
+
+  return (
+    <nav className={styles['app-shell__nav']}>
+      <NavLink to="/" end className={navLinkClassName}>
+        Home
+      </NavLink>
+      <NavLink to="/teams" className={navLinkClassName}>
+        Teams
+      </NavLink>
+      {hasProfile && (
+        <NavLink to="/profile/edit" className={navLinkClassName}>
+          Profile
+        </NavLink>
+      )}
+      <button onClick={toggleTheme} className={styles['theme-toggle']} aria-label="Toggle theme">
+        {theme === 'light' ? '🌙' : '☀️'}
+      </button>
+    </nav>
+  )
+}
+
+function AppShell() {
+  const navigate = useNavigate()
+  const [showWelcome, setShowWelcome] = useState(() => isNewUser())
+
   const handleGetStarted = () => {
     markUserOnboarded()
     setShowWelcome(false)
@@ -99,11 +128,6 @@ export function App() {
     markUserOnboarded()
     setShowWelcome(false)
   }
-
-  const navLinkClassName = ({ isActive }: { isActive: boolean }) =>
-    isActive
-      ? `${styles['app-shell__link']} ${styles['app-shell__link--active']}`
-      : styles['app-shell__link']
 
   const location = useLocation()
   const isOnTeamRoute = location.pathname.startsWith('/teams/')
@@ -138,37 +162,28 @@ export function App() {
             <p className="text text--muted">Team Updates</p>
             <h1 className={styles['app-shell__title']}>✨ Pulseboard</h1>
           </div>
-          <nav className={styles['app-shell__nav']}>
-            {!isOnTeamRoute && (
-              <>
-                <NavLink to="/" end className={navLinkClassName}>
-                  Home
-                </NavLink>
-                <NavLink to="/teams" className={navLinkClassName}>
-                  Teams
-                </NavLink>
-              </>
-            )}
-            {isOnTeamRoute && (
-              <>
-                <NavLink to="timeline" end className={navLinkClassName}>
-                  Timeline
-                </NavLink>
-                <NavLink to="map" className={navLinkClassName}>
-                  Map
-                </NavLink>
-                <NavLink to="profile" className={navLinkClassName}>
-                  Profile
-                </NavLink>
-              </>
-            )}
-            <button onClick={toggleTheme} className={styles['theme-toggle']} aria-label="Toggle theme">
-              {theme === 'light' ? '🌙' : '☀️'}
-            </button>
-          </nav>
+          <AppNavigation />
         </header>
 
         <TeamNavbar />
+
+        <main className={styles['app-shell__content']}>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/teams" element={<TeamBrowserPage />} />
+            <Route path="/profile/new" element={<ProfileSetupPage />} />
+            <Route path="/profile/edit" element={<ProfilePage />} />
+            <Route path="/teams/:teamId/*" element={
+              <UpdatesProvider>
+                <Routes>
+                  <Route index element={<TimelinePage />} />
+                  <Route path="timeline" element={<TimelinePage />} />
+                  <Route path="map" element={<MapPage />} />
+                </Routes>
+              </UpdatesProvider>
+            } />
+          </Routes>
+        </main>
 
         {isMockMode() && (
           <div className={styles['mock-mode-banner']}>
@@ -176,26 +191,15 @@ export function App() {
             <a href="/teams" className={styles['mock-mode-link']}>Skip to Teams</a>
           </div>
         )}
-
-        <main className={styles['app-shell__content']}>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/teams" element={<TeamBrowserPage />} />
-            <Route path="/profile/new" element={<ProfileSetupPage />} />
-            <Route path="/teams/:teamId/*" element={
-              <TeamProvider>
-                <UpdatesProvider>
-                  <Routes>
-                    <Route path="timeline" element={<TimelinePage />} />
-                    <Route path="map" element={<MapPage />} />
-                    <Route path="profile" element={<ProfilePage />} />
-                  </Routes>
-                </UpdatesProvider>
-              </TeamProvider>
-            } />
-          </Routes>
-        </main>
       </div>
     </>
+  )
+}
+
+export function App() {
+  return (
+    <TeamProvider>
+      <AppShell />
+    </TeamProvider>
   )
 }
