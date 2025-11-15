@@ -128,6 +128,32 @@
   transform: rotate(20deg) scale(0.95);
 }
 
+.mock-mode-banner {
+  background: linear-gradient(135deg, #f77f00 0%, #f4a460 100%);
+  color: white;
+  padding: 12px 40px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+  z-index: 99;
+}
+
+.mock-mode-link {
+  color: white;
+  text-decoration: underline;
+  font-weight: 600;
+  transition: opacity 0.2s ease;
+}
+
+.mock-mode-link:hover {
+  opacity: 0.8;
+}
+
 .app-shell__content {
   padding: 40px;
   display: flex;

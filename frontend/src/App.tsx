@@ -4,6 +4,8 @@ import { MapPage } from './pages/MapPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { TimelinePage } from './pages/TimelinePage'
 import { isNewUser, markUserOnboarded } from './contexts/UserProfileContext'
+import { Toaster } from './components/Toaster'
+import { isMockMode } from './api'
 import styles from './App.module.css'
 
 export function App() {
@@ -40,6 +42,7 @@ export function App() {
 
   return (
     <>
+      <Toaster />
       {showWelcome && (
         <div className="modal-overlay" onClick={handleSkip}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -82,6 +85,13 @@ export function App() {
             </button>
           </nav>
         </header>
+
+        {isMockMode() && (
+          <div className={styles['mock-mode-banner']}>
+            🔧 Mock Mode - Using Sample Data
+            <a href="#teams" className={styles['mock-mode-link']}>Skip to Teams</a>
+          </div>
+        )}
 
         <main className={styles['app-shell__content']}>
           <Routes>
