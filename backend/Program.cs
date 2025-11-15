@@ -7,6 +7,8 @@ using TeamUpdates.Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 // Add services to the container
 builder.Services.AddOpenApi();
 
