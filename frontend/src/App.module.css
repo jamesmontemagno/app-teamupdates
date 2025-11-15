@@ -3,6 +3,7 @@
   max-width: 1400px;
   margin: 0 auto;
   background: var(--gradient-panel);
+  -webkit-backdrop-filter: blur(20px); /* Safari 9+ */
   backdrop-filter: blur(20px);
   box-shadow: var(--shadow-xl);
   display: flex;
@@ -32,6 +33,7 @@
   justify-content: space-between;
   gap: 24px;
   background: var(--gradient-header);
+  -webkit-backdrop-filter: blur(20px); /* Safari 9+ */
   backdrop-filter: blur(20px);
   position: sticky;
   top: 0;

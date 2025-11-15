@@ -309,6 +309,7 @@ body {
 /* Picker Popup Styles */
 .picker-popup {
   background: var(--gradient-card);
+  -webkit-backdrop-filter: blur(20px); /* Safari 9+ */
   backdrop-filter: blur(20px);
   border: 2px solid var(--border);
   border-radius: 20px;
@@ -500,6 +501,7 @@ body {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(4px); /* Safari 9+ */
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;

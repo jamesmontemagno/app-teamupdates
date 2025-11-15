@@ -99,11 +99,13 @@
 
 .color-button {
   width: 100%;
+  padding-bottom: 100%; /* Fallback for Safari < 15 */
   aspect-ratio: 1;
   border: 3px solid transparent;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .color-button:hover {
