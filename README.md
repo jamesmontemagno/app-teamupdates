@@ -22,6 +22,7 @@ Pulseboard is a lightweight team-updating console: your crew can post text, audi
 - **SignalR** for real-time updates
 - **Leaflet** for interactive maps
 - **CSS Modules** for scoped styling
+- **OpenTelemetry** for browser telemetry (optional)
 
 ### Backend
 - **.NET 10** Minimal Web API
@@ -143,6 +144,16 @@ VITE_SIGNALR_HUB_URL=/hubs/updates
 
 # Backend URL for standalone dev (optional, defaults shown)
 VITE_BACKEND_URL=http://localhost:5000
+
+# OpenTelemetry Configuration (optional)
+# Enable browser telemetry to send traces to Aspire dashboard
+VITE_ENABLE_TELEMETRY=false
+# OTLP HTTP endpoint (Aspire dashboard endpoint)
+VITE_OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:18889/v1/traces
+# Service name for telemetry
+VITE_OTEL_SERVICE_NAME=app-teamupdates-frontend
+# Enable debug logging for telemetry
+VITE_OTEL_DEBUG=false
 ```
 
 ### Backend Configuration
@@ -245,6 +256,7 @@ The project uses .NET Aspire for orchestration via `apphost.cs`:
 │   │   ├── components/     # React components
 │   │   ├── contexts/       # React contexts
 │   │   ├── pages/          # Page components
+│   │   ├── telemetry/      # OpenTelemetry browser setup
 │   │   └── utils/          # Utility functions
 │   ├── .env.development    # Development environment config
 │   └── .env.mock           # Mock mode config
@@ -331,6 +343,110 @@ Or use Aspire:
 ```bash
 aspire run
 ```
+
+## OpenTelemetry Browser Telemetry
+
+The frontend supports sending browser telemetry to the Aspire dashboard using OpenTelemetry. This feature is **optional** and disabled by default.
+
+### What is Telemetry?
+
+Browser telemetry captures:
+- **Traces**: HTTP requests from browser to backend API
+- **Document Load**: Page load performance metrics
+- **User Interactions**: Click and submit events
+- **Custom Spans**: Manual instrumentation for specific operations
+
+### Enabling Telemetry
+
+Set the following environment variables in your `.env.local`:
+
+```env
+# Enable telemetry
+VITE_ENABLE_TELEMETRY=true
+
+# Aspire dashboard OTLP endpoint (default shown)
+VITE_OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:18889/v1/traces
+
+# Optional: customize service name
+VITE_OTEL_SERVICE_NAME=app-teamupdates-frontend
+
+# Optional: enable debug logging
+VITE_OTEL_DEBUG=true
+```
+
+### Using with Aspire Dashboard
+
+When running with Aspire (`aspire run`), the dashboard is available at `http://localhost:18888`. To enable browser telemetry:
+
+1. **Enable CORS in Aspire Dashboard**: Set the environment variable:
+   ```bash
+   export ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL=http://localhost:18889
+   ```
+
+2. **Enable telemetry in frontend**: Update `.env.local` with `VITE_ENABLE_TELEMETRY=true`
+
+3. **View telemetry**: Open the Aspire dashboard and navigate to:
+   - **Traces** page to see request traces from browser to backend
+   - **Structured Logs** to see console logs
+   - **Metrics** to see performance data
+
+### Using with Standalone Aspire Dashboard
+
+You can use the standalone Aspire dashboard without running the full Aspire app:
+
+```bash
+# Run standalone dashboard with CORS enabled
+docker run --rm -it \
+  -p 18888:18888 \
+  -p 18889:18889 \
+  --name aspire-dashboard \
+  mcr.microsoft.com/dotnet/aspire-dashboard:latest
+```
+
+Then enable telemetry in your frontend `.env.local` as shown above.
+
+### Automatic Instrumentation
+
+The following are automatically instrumented:
+- **Fetch API**: All HTTP requests to the backend
+- **Document Load**: Page load timing
+- **User Interactions**: Click and submit events
+
+### Manual Instrumentation
+
+For custom tracing, use the `getTracer()` function:
+
+```typescript
+import { getTracer } from './telemetry';
+
+const tracer = getTracer();
+const span = tracer.startSpan('my-custom-operation');
+try {
+  // Your code here
+  span.setAttributes({ 'custom.attribute': 'value' });
+} finally {
+  span.end();
+}
+```
+
+### Performance Impact
+
+- Telemetry is **disabled by default** to avoid performance overhead in production
+- When enabled, traces are batched and sent asynchronously
+- Minimal impact on user experience
+- Configure `scheduledDelayMillis` and `maxExportBatchSize` in `src/telemetry/provider.ts` to tune performance
+
+### Troubleshooting
+
+**Traces not showing in dashboard:**
+- Check console for telemetry initialization messages
+- Ensure `VITE_ENABLE_TELEMETRY=true` is set
+- Verify OTLP endpoint is accessible (check browser network tab for OPTIONS/POST requests to endpoint)
+- Enable debug logging with `VITE_OTEL_DEBUG=true`
+
+**CORS errors:**
+- Ensure Aspire dashboard CORS is configured to allow your origin
+- Check that the OTLP endpoint URL is correct
 
 ## Next steps
 
