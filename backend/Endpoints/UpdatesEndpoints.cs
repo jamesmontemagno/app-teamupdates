@@ -151,7 +151,7 @@ public static class UpdatesEndpoints
             };
             
             // Emit SignalR event to notify clients of new update
-            logger.LogDebug("Broadcasting update {UpdateId} via SignalR to team {TeamId}", update.Id, teamId);
+            logger.LogInformation("Broadcasting update {UpdateId} via SignalR to team {TeamId}", update.Id, teamId);
             await hubContext.Clients.Group(teamId.ToString()).SendAsync("UpdateCreated", response);
             
             return Results.Created($"/api/teams/{teamId}/updates/{update.Id}", response);

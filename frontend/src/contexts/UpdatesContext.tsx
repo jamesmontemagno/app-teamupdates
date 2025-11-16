@@ -74,12 +74,17 @@ export function UpdatesProvider({ children }: { children: React.ReactNode }) {
     
     const unsubscribe = signalR.onUpdateCreated((update: unknown) => {
       const teamUpdate = update as TeamUpdate;
+      
       // Only add updates for the current team
       if (teamUpdate.teamId === teamId) {
         setUpdates((current) => {
-          // Check if update already exists
+          // Check if update already exists (primary deduplication)
           const exists = current.some(u => u.id === teamUpdate.id);
-          if (exists) return current;
+          if (exists) {
+            return current;
+          }
+          
+          // Add update from SignalR (from other users)
           return sortUpdatesChronologically([teamUpdate, ...current]);
         });
       }
@@ -91,34 +96,18 @@ export function UpdatesProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      // Cleanup: unsubscribe BEFORE leaving team
       unsubscribe();
       signalR.leaveTeam(teamId);
     };
   }, [teamId]);
+
 
   const addUpdate = async (payload: UpdatePayload) => {
     if (!teamId) {
       showError('No team selected');
       return;
     }
-
-    // Optimistic update
-    const optimisticUpdate: TeamUpdate = {
-      id: crypto.randomUUID?.() || `temp-${Date.now()}`,
-      teamId,
-      text: payload.text,
-      category: payload.category,
-      createdAt: payload.createdAt || nowAsISOString(),
-      dayKey: formatDayKey(payload.createdAt || nowAsISOString()),
-      media: payload.media,
-      location: payload.location,
-      userId: payload.userId,
-      userDisplayName: payload.userDisplayName,
-      userEmoji: payload.userEmoji,
-      userPhotoUrl: payload.userPhotoUrl,
-    };
-
-    setUpdates((current) => sortUpdatesChronologically([optimisticUpdate, ...current]));
 
     try {
       const createdUpdate = await api.createUpdate(teamId, {
@@ -135,16 +124,17 @@ export function UpdatesProvider({ children }: { children: React.ReactNode }) {
         } : undefined,
         location: payload.location,
       });
-
-      // Replace optimistic update with real one
-      setUpdates((current) =>
-        sortUpdatesChronologically(
-          current.map((u) => (u.id === optimisticUpdate.id ? createdUpdate : u))
-        )
-      );
+      
+      // Add the update directly from API response
+      // SignalR might have already added it if it arrived faster
+      setUpdates((current) => {
+        const exists = current.some(u => u.id === createdUpdate.id);
+        if (exists) {
+          return current;
+        }
+        return sortUpdatesChronologically([createdUpdate, ...current]);
+      });
     } catch (err) {
-      // Rollback on error
-      setUpdates((current) => current.filter((u) => u.id !== optimisticUpdate.id));
       showError(err, 'Failed to post update');
       throw err;
     }

@@ -173,7 +173,10 @@ class SignalRConnection {
   }
 
   onUpdateCreated(handler: UpdateCreatedHandler): () => void {
-    this.handlers.add(handler);
+    // Only add if not already present (handles React Strict Mode double-mount)
+    if (!this.handlers.has(handler)) {
+      this.handlers.add(handler);
+    }
     
     // Return unsubscribe function
     return () => {
