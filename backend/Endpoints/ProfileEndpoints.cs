@@ -10,8 +10,9 @@ public static class ProfileEndpoints
 {
     public static RouteGroupBuilder MapProfileEndpoints(this RouteGroupBuilder group)
     {
-        group.MapGet("/{userId:guid}", async (Guid userId, AppDbContext db) =>
+        group.MapGet("/{userId:guid}", async (Guid userId, AppDbContext db, ILogger<Program> logger) =>
         {
+            logger.LogInformation("Fetching profile for user {UserId}", userId);
             var profile = await db.UserProfiles.FindAsync(userId);
             if (profile == null)
                 return Results.NotFound(new { error = "Profile not found" });
@@ -19,8 +20,9 @@ public static class ProfileEndpoints
             return Results.Ok(profile);
         });
 
-        group.MapPost("/", async (UserProfileRequest request, AppDbContext db) =>
+        group.MapPost("/", async (UserProfileRequest request, AppDbContext db, ILogger<Program> logger) =>
         {
+            logger.LogInformation("Creating profile: {DisplayName} ({Emoji})", request.DisplayName, request.Emoji);
             var profile = new UserProfile
             {
                 Id = Guid.NewGuid(),
@@ -39,15 +41,16 @@ public static class ProfileEndpoints
                     ? JsonSerializer.Serialize(request.LastLocation) 
                     : null
             };
-            
             db.UserProfiles.Add(profile);
             await db.SaveChangesAsync();
             
+            logger.LogInformation("Profile created: {UserId} - {DisplayName}", profile.Id, profile.DisplayName);
             return Results.Created($"/api/profile/{profile.Id}", profile);
         });
 
-        group.MapPut("/{userId:guid}", async (Guid userId, UserProfileRequest request, AppDbContext db) =>
+        group.MapPut("/{userId:guid}", async (Guid userId, UserProfileRequest request, AppDbContext db, ILogger<Program> logger) =>
         {
+            logger.LogInformation("Updating profile for user {UserId}", userId);
             var profile = await db.UserProfiles.FindAsync(userId);
             if (profile == null)
                 return Results.NotFound(new { error = "Profile not found" });

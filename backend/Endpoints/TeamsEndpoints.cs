@@ -8,8 +8,9 @@ public static class TeamsEndpoints
 {
     public static RouteGroupBuilder MapTeamsEndpoints(this RouteGroupBuilder group)
     {
-        group.MapGet("/", async (AppDbContext db) =>
+        group.MapGet("/", async (AppDbContext db, ILogger<Program> logger) =>
         {
+            logger.LogInformation("Fetching all public teams");
             var teams = await db.Teams
                 .Where(t => t.IsPublic)
                 .Select(t => new { t.Id, t.Name, t.IsPublic, t.CreatedAt })
@@ -32,8 +33,9 @@ public static class TeamsEndpoints
             return Results.Ok(new { team.Id, team.Name, team.IsPublic, team.CreatedAt });
         });
 
-        group.MapPost("/{teamId:guid}/join", async (Guid teamId, Guid userId, AppDbContext db) =>
+        group.MapPost("/{teamId:guid}/join", async (Guid teamId, Guid userId, AppDbContext db, ILogger<Program> logger) =>
         {
+            logger.LogInformation("User {UserId} joining team {TeamId}", userId, teamId);
             var team = await db.Teams.FindAsync(teamId);
             if (team == null)
                 return Results.NotFound(new { error = "Team not found" });
@@ -42,7 +44,10 @@ public static class TeamsEndpoints
                 .FirstOrDefaultAsync(tm => tm.UserId == userId && tm.TeamId == teamId);
             
             if (existingMembership != null)
+            {
+                logger.LogDebug("User {UserId} already member of team {TeamId}", userId, teamId);
                 return Results.Ok(new { message = "Already a member" });
+            }
             
             var membership = new TeamMembership
             {
@@ -54,11 +59,13 @@ public static class TeamsEndpoints
             db.TeamMemberships.Add(membership);
             await db.SaveChangesAsync();
             
+            logger.LogInformation("User {UserId} successfully joined team {TeamId}", userId, teamId);
             return Results.Ok(new { message = "Joined team successfully" });
         });
 
-        group.MapPost("/{teamId:guid}/leave", async (Guid teamId, Guid userId, AppDbContext db) =>
+        group.MapPost("/{teamId:guid}/leave", async (Guid teamId, Guid userId, AppDbContext db, ILogger<Program> logger) =>
         {
+            logger.LogInformation("User {UserId} leaving team {TeamId}", userId, teamId);
             var membership = await db.TeamMemberships
                 .FirstOrDefaultAsync(tm => tm.UserId == userId && tm.TeamId == teamId);
             
@@ -68,6 +75,7 @@ public static class TeamsEndpoints
             db.TeamMemberships.Remove(membership);
             await db.SaveChangesAsync();
             
+            logger.LogInformation("User {UserId} successfully left team {TeamId}", userId, teamId);
             return Results.Ok(new { message = "Left team successfully" });
         });
 

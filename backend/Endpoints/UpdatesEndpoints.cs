@@ -16,11 +16,15 @@ public static class UpdatesEndpoints
         group.MapGet("/", async (
             Guid teamId,
             AppDbContext db,
+            ILogger<Program> logger,
             string? day = null,
             string? category = null,
             string? media = null,
             bool locationOnly = false) =>
         {
+            logger.LogInformation("Fetching updates for team {TeamId} with filters: day={Day}, category={Category}, media={Media}, locationOnly={LocationOnly}",
+                teamId, day ?? "all", category ?? "all", media ?? "all", locationOnly);
+            
             var query = db.TeamUpdates.Where(u => u.TeamId == teamId);
             
             if (day != null && day != "all")
@@ -61,6 +65,7 @@ public static class UpdatesEndpoints
                 Location = u.LocationJson != null ? JsonSerializer.Deserialize<object>(u.LocationJson) : null
             }).ToList();
             
+            logger.LogInformation("Returning {Count} updates for team {TeamId}", response.Count, teamId);
             return Results.Ok(response);
         });
 
@@ -69,8 +74,12 @@ public static class UpdatesEndpoints
             TeamUpdateRequest request,
             AppDbContext db,
             ILocationRandomizer locationRandomizer,
-            IHubContext<UpdatesHub> hubContext) =>
+            IHubContext<UpdatesHub> hubContext,
+            ILogger<Program> logger) =>
         {
+            logger.LogInformation("Creating update for team {TeamId} by user {UserId}: category={Category}, hasMedia={HasMedia}, hasLocation={HasLocation}",
+                teamId, request.UserId, request.Category, request.Media != null, request.Location != null);
+            
             // TODO: ValidateTeamMembership will use authenticated userId instead of request body
             var team = await db.Teams.FindAsync(teamId);
             if (team == null)
@@ -83,11 +92,16 @@ public static class UpdatesEndpoints
             string? locationJson = null;
             if (request.Location != null)
             {
+                logger.LogDebug("Randomizing location with radius {Radius}m: original=({Lat},{Lng})",
+                    user.RandomizationRadius, request.Location.Lat, request.Location.Lng);
+                
                 // Randomize location for privacy
                 var (randomLat, randomLng) = locationRandomizer.RandomizeCoordinates(
                     request.Location.Lat,
                     request.Location.Lng,
                     user.RandomizationRadius);
+                
+                logger.LogDebug("Randomized location: ({Lat},{Lng})", randomLat, randomLng);
                 
                 locationJson = JsonSerializer.Serialize(new
                 {
@@ -117,6 +131,8 @@ public static class UpdatesEndpoints
             db.TeamUpdates.Add(update);
             await db.SaveChangesAsync();
             
+            logger.LogInformation("Update created: {UpdateId} for team {TeamId}", update.Id, teamId);
+            
             // Create response DTO with deserialized JSON fields
             var response = new
             {
@@ -135,6 +151,7 @@ public static class UpdatesEndpoints
             };
             
             // Emit SignalR event to notify clients of new update
+            logger.LogDebug("Broadcasting update {UpdateId} via SignalR to team {TeamId}", update.Id, teamId);
             await hubContext.Clients.Group(teamId.ToString()).SendAsync("UpdateCreated", response);
             
             return Results.Created($"/api/teams/{teamId}/updates/{update.Id}", response);

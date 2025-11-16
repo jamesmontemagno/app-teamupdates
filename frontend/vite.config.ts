@@ -26,14 +26,14 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false, // Accept self-signed certificates
           rewrite: undefined, // Don't rewrite path
-          configure: (proxy, _options) => {
-            proxy.on('error', (err, _req, _res) => {
+          configure: (proxy) => {
+            proxy.on('error', (err) => {
               console.log('[vite] proxy error:', err);
             });
-            proxy.on('proxyReq', (proxyReq, req, _res) => {
+            proxy.on('proxyReq', (proxyReq, req) => {
               console.log('[vite] Sending Request to the Target:', req.method, req.url, '→', proxyReq.protocol + '//' + proxyReq.host + proxyReq.path);
             });
-            proxy.on('proxyRes', (proxyRes, req, _res) => {
+            proxy.on('proxyRes', (proxyRes, req) => {
               console.log('[vite] Received Response from the Target:', proxyRes.statusCode, req.url);
             });
           },
@@ -44,14 +44,14 @@ export default defineConfig(({ mode }) => {
           secure: false, // Accept self-signed certificates
           ws: true, // Enable WebSocket proxying for SignalR
           rewrite: undefined, // Don't rewrite path
-          configure: (proxy, _options) => {
-            proxy.on('error', (err, _req, _res) => {
+          configure: (proxy) => {
+            proxy.on('error', (err) => {
               console.log('[vite] proxy error:', err);
             });
-            proxy.on('proxyReq', (proxyReq, req, _res) => {
+            proxy.on('proxyReq', (proxyReq, req) => {
               console.log('[vite] Sending Request to the Target:', req.method, req.url, '→', proxyReq.protocol + '//' + proxyReq.host + proxyReq.path);
             });
-            proxy.on('proxyRes', (proxyRes, req, _res) => {
+            proxy.on('proxyRes', (proxyRes, req) => {
               console.log('[vite] Received Response from the Target:', proxyRes.statusCode, req.url);
             });
           },

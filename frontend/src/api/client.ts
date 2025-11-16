@@ -1,5 +1,7 @@
 // Base API client with fetch wrapper
 
+import { logger } from '../utils/logger';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export class ApiError extends Error {
@@ -79,6 +81,8 @@ function buildUrl(endpoint: string, params?: Record<string, string | number | bo
 
 export async function apiGet<T>(endpoint: string, options?: RequestOptions): Promise<T> {
   const url = buildUrl(endpoint, options?.params);
+  logger.apiRequest('GET', url);
+  
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -88,11 +92,14 @@ export async function apiGet<T>(endpoint: string, options?: RequestOptions): Pro
     ...options,
   });
 
+  logger.apiResponse('GET', url, response.status);
   return handleResponse<T>(response);
 }
 
 export async function apiPost<T>(endpoint: string, body?: unknown, options?: RequestOptions): Promise<T> {
   const url = buildUrl(endpoint, options?.params);
+  logger.apiRequest('POST', url, { body });
+  
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -104,11 +111,14 @@ export async function apiPost<T>(endpoint: string, body?: unknown, options?: Req
     ...options,
   });
 
+  logger.apiResponse('POST', url, response.status);
   return handleResponse<T>(response);
 }
 
 export async function apiPut<T>(endpoint: string, body?: unknown, options?: RequestOptions): Promise<T> {
   const url = buildUrl(endpoint, options?.params);
+  logger.apiRequest('PUT', url, { body });
+  
   const response = await fetch(url, {
     method: 'PUT',
     headers: {
@@ -120,6 +130,7 @@ export async function apiPut<T>(endpoint: string, body?: unknown, options?: Requ
     ...options,
   });
 
+  logger.apiResponse('PUT', url, response.status);
   return handleResponse<T>(response);
 }
 

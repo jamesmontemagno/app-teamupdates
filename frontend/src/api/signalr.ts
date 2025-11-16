@@ -2,6 +2,7 @@
 
 import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
 import { isMockMode } from './index';
+import { logger } from '../utils/logger';
 
 const SIGNALR_HUB_URL = import.meta.env.VITE_SIGNALR_HUB_URL || '/hubs/updates';
 const RECONNECT_DELAY_MS = 5000;
@@ -20,7 +21,7 @@ class SignalRConnection {
   constructor() {
     // Don't connect in mock mode
     if (isMockMode()) {
-      console.log('SignalR: Mock mode detected, skipping connection');
+      logger.info('SignalR: Mock mode detected, skipping connection');
       return;
     }
 
@@ -49,20 +50,21 @@ class SignalRConnection {
 
     // Set up event handlers
     this.connection.on('UpdateCreated', (update: unknown) => {
+      logger.signalR('UpdateCreated event received', { update });
       this.handlers.forEach((handler) => handler(update));
     });
 
     this.connection.onreconnecting((error) => {
-      console.warn('SignalR: Reconnecting...', error);
+      logger.signalR('Reconnecting...', { error: error?.message });
     });
 
     this.connection.onreconnected((connectionId) => {
-      console.log('SignalR: Reconnected', connectionId);
+      logger.signalR('Reconnected successfully', { connectionId });
       this.reconnectAttempts = 0;
     });
 
     this.connection.onclose((error) => {
-      console.log('SignalR: Connection closed', error);
+      logger.signalR('Connection closed', { error: error?.message });
       if (!this.isIntentionallyDisconnected) {
         this.scheduleReconnect();
       }
@@ -75,14 +77,14 @@ class SignalRConnection {
     }
 
     if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      console.error('SignalR: Max reconnection attempts reached');
+      logger.error('SignalR: Max reconnection attempts reached');
       return;
     }
 
     this.reconnectAttempts++;
     const delay = Math.min(RECONNECT_DELAY_MS * this.reconnectAttempts, 60000);
     
-    console.log(`SignalR: Scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
+    logger.debug(`SignalR: Scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
     
     this.reconnectTimer = setTimeout(() => {
       this.connect();
