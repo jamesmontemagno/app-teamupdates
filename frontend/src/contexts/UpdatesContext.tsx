@@ -123,6 +123,7 @@ export function UpdatesProvider({ children }: { children: React.ReactNode }) {
     try {
       const createdUpdate = await api.createUpdate(teamId, {
         userId: payload.userId,
+        dayKey: formatDayKey(payload.createdAt || nowAsISOString()),
         text: payload.text,
         category: payload.category,
         media: payload.media ? {

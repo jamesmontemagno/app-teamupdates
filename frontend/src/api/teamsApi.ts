@@ -12,9 +12,9 @@ export async function getTeam(teamId: string): Promise<Team> {
 }
 
 export async function joinTeam(teamId: string, userId: string): Promise<void> {
-  return apiPost<void>(`/teams/${teamId}/join`, { userId });
+  return apiPost<void>(`/teams/${teamId}/join`, undefined, { params: { userId } });
 }
 
 export async function leaveTeam(teamId: string, userId: string): Promise<void> {
-  return apiPost<void>(`/teams/${teamId}/leave`, { userId });
+  return apiPost<void>(`/teams/${teamId}/leave`, undefined, { params: { userId } });
 }

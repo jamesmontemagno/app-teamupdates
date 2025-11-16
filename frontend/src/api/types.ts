@@ -98,6 +98,7 @@ export interface UpdateProfileRequest {
 
 export interface CreateUpdateRequest {
   userId: string;
+  dayKey: string; // Format: YYYY-MM-DD
   text: string;
   category: string;
   media?: {

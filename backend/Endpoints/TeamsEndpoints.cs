@@ -57,6 +57,20 @@ public static class TeamsEndpoints
             return Results.Ok(new { message = "Joined team successfully" });
         });
 
+        group.MapPost("/{teamId:guid}/leave", async (Guid teamId, Guid userId, AppDbContext db) =>
+        {
+            var membership = await db.TeamMemberships
+                .FirstOrDefaultAsync(tm => tm.UserId == userId && tm.TeamId == teamId);
+            
+            if (membership == null)
+                return Results.NotFound(new { error = "Membership not found" });
+            
+            db.TeamMemberships.Remove(membership);
+            await db.SaveChangesAsync();
+            
+            return Results.Ok(new { message = "Left team successfully" });
+        });
+
         return group;
     }
 }

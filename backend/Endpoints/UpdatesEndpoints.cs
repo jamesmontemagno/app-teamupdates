@@ -44,7 +44,24 @@ public static class UpdatesEndpoints
                 .OrderByDescending(u => u.CreatedAt)
                 .ToListAsync();
             
-            return Results.Ok(updates);
+            // Map to DTOs with deserialized JSON fields
+            var response = updates.Select(u => new
+            {
+                u.Id,
+                u.TeamId,
+                u.UserId,
+                u.UserDisplayName,
+                u.UserEmoji,
+                u.UserPhotoUrl,
+                u.CreatedAt,
+                u.DayKey,
+                u.Category,
+                u.Text,
+                Media = u.MediaJson != null ? JsonSerializer.Deserialize<object>(u.MediaJson) : null,
+                Location = u.LocationJson != null ? JsonSerializer.Deserialize<object>(u.LocationJson) : null
+            }).ToList();
+            
+            return Results.Ok(response);
         });
 
         group.MapPost("/", async (
@@ -100,10 +117,27 @@ public static class UpdatesEndpoints
             db.TeamUpdates.Add(update);
             await db.SaveChangesAsync();
             
-            // Emit SignalR event to notify clients of new update
-            await hubContext.Clients.Group(teamId.ToString()).SendAsync("UpdateCreated", update);
+            // Create response DTO with deserialized JSON fields
+            var response = new
+            {
+                update.Id,
+                update.TeamId,
+                update.UserId,
+                update.UserDisplayName,
+                update.UserEmoji,
+                update.UserPhotoUrl,
+                update.CreatedAt,
+                update.DayKey,
+                update.Category,
+                update.Text,
+                Media = update.MediaJson != null ? JsonSerializer.Deserialize<object>(update.MediaJson) : null,
+                Location = update.LocationJson != null ? JsonSerializer.Deserialize<object>(update.LocationJson) : null
+            };
             
-            return Results.Created($"/api/teams/{teamId}/updates/{update.Id}", update);
+            // Emit SignalR event to notify clients of new update
+            await hubContext.Clients.Group(teamId.ToString()).SendAsync("UpdateCreated", response);
+            
+            return Results.Created($"/api/teams/{teamId}/updates/{update.Id}", response);
         });
 
         return group;
