@@ -6,6 +6,7 @@ import * as api from '../api';
 import { getSignalRConnection } from '../api/signalr';
 import { showError } from '../utils/toast';
 import { useTeam } from './TeamContext';
+import { withSpan, recordUpdateCreated, recordUpdateCreationLatency } from '../telemetry';
 
 export interface UpdatePayload {
   text: string;
@@ -51,8 +52,10 @@ export function UpdatesProvider({ children }: { children: React.ReactNode }) {
     setError(null);
 
     try {
-      const fetchedUpdates = await api.getTeamUpdates(teamId);
-      setUpdates(sortUpdatesChronologically(fetchedUpdates));
+      await withSpan('updates.fetch', { 'team.id': teamId }, async () => {
+        const fetchedUpdates = await api.getTeamUpdates(teamId);
+        setUpdates(sortUpdatesChronologically(fetchedUpdates));
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load updates';
       setError(message);
@@ -109,21 +112,40 @@ export function UpdatesProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    const startTime = performance.now();
+
     try {
-      const createdUpdate = await api.createUpdate(teamId, {
-        userId: payload.userId,
-        dayKey: formatDayKey(payload.createdAt || nowAsISOString()),
-        text: payload.text,
-        category: payload.category,
-        media: payload.media ? {
-          type: payload.media.type,
-          dataUrl: payload.media.dataUrl,
-          name: payload.media.name,
-          duration: payload.media.duration,
-          size: payload.media.size,
-        } : undefined,
-        location: payload.location,
-      });
+      const createdUpdate = await withSpan(
+        'update.create',
+        {
+          'team.id': teamId,
+          'user.id': payload.userId,
+          'update.category': payload.category,
+          'update.has_media': !!payload.media,
+          'update.has_location': !!payload.location,
+        },
+        async () => {
+          return await api.createUpdate(teamId, {
+            userId: payload.userId,
+            dayKey: formatDayKey(payload.createdAt || nowAsISOString()),
+            text: payload.text,
+            category: payload.category,
+            media: payload.media ? {
+              type: payload.media.type,
+              dataUrl: payload.media.dataUrl,
+              name: payload.media.name,
+              duration: payload.media.duration,
+              size: payload.media.size,
+            } : undefined,
+            location: payload.location,
+          });
+        }
+      );
+      
+      // Record metrics
+      const latencyMs = performance.now() - startTime;
+      recordUpdateCreated(payload.category, !!payload.media);
+      recordUpdateCreationLatency(latencyMs, payload.category);
       
       // Add the update directly from API response
       // SignalR might have already added it if it arrived faster

@@ -4,6 +4,7 @@ import type { UserProfile } from '../api/types';
 import * as api from '../api';
 import { ApiError } from '../api/client';
 import { showError } from '../utils/toast';
+import { withSpan } from '../telemetry';
 
 const USER_ID_KEY = 'teamUpdatesUserId';
 const ONBOARDING_KEY = 'teamUpdatesOnboarded';
@@ -82,8 +83,17 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
     }
 
     try {
-      const updatedProfile = await api.updateProfile(userId, data);
-      setProfile(updatedProfile);
+      await withSpan(
+        'profile.update',
+        {
+          'user.id': userId,
+          'profile.has_location': !!(data.defaultLocation || data.city),
+        },
+        async () => {
+          const updatedProfile = await api.updateProfile(userId, data);
+          setProfile(updatedProfile);
+        }
+      );
     } catch (err) {
       showError(err, 'Failed to update profile');
       throw err;
@@ -95,17 +105,27 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
     setGeocodeError(null);
 
     try {
-      const result = await api.geocodeAddress({ city, state, country });
-      await updateProfile({
-        city,
-        state,
-        country,
-        defaultLocation: {
-          lat: result.lat,
-          lng: result.lng,
-          displayName: result.displayName,
+      await withSpan(
+        'geocode.location',
+        {
+          'location.city': city || '',
+          'location.state': state || '',
+          'location.country': country || '',
         },
-      });
+        async () => {
+          const result = await api.geocodeAddress({ city, state, country });
+          await updateProfile({
+            city,
+            state,
+            country,
+            defaultLocation: {
+              lat: result.lat,
+              lng: result.lng,
+              displayName: result.displayName,
+            },
+          });
+        }
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to geocode location';
       setGeocodeError(message);

@@ -3,6 +3,14 @@
 import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
 import { isMockMode } from './index';
 import { logger } from '../utils/logger';
+import {
+  instrumentSignalRConnection,
+  traceSignalRConnect,
+  traceSignalRDisconnect,
+  traceTeamJoin,
+  traceTeamLeave,
+  recordUpdateCreatedMessage,
+} from '../telemetry';
 
 const SIGNALR_HUB_URL = import.meta.env.VITE_SIGNALR_HUB_URL || '/hubs/updates';
 const RECONNECT_DELAY_MS = 5000;
@@ -48,9 +56,19 @@ class SignalRConnection {
       .configureLogging(LogLevel.Information)
       .build();
 
+    // Instrument connection with telemetry
+    instrumentSignalRConnection(this.connection);
+
     // Set up event handlers
     this.connection.on('UpdateCreated', (update: unknown) => {
       logger.signalR('UpdateCreated event received', { update });
+      
+      // Record telemetry for SignalR message
+      const teamUpdate = update as { teamId?: string; id?: string };
+      if (teamUpdate.teamId && teamUpdate.id) {
+        recordUpdateCreatedMessage(teamUpdate.teamId, teamUpdate.id);
+      }
+      
       this.handlers.forEach((handler) => handler(update));
     });
 
@@ -112,18 +130,19 @@ class SignalRConnection {
     }
 
     this.isIntentionallyDisconnected = false;
-    this.connectionPromise = this.connection
-      .start()
-      .then(() => {
-        console.log('SignalR: Connected');
-        this.reconnectAttempts = 0;
-        this.connectionPromise = null;
-      })
-      .catch((error) => {
-        console.error('SignalR: Connection failed', error);
-        this.connectionPromise = null;
-        this.scheduleReconnect();
-      });
+    this.connectionPromise = traceSignalRConnect(async () => {
+      if (!this.connection) return;
+      
+      await this.connection.start();
+      console.log('SignalR: Connected');
+      this.reconnectAttempts = 0;
+      this.connectionPromise = null;
+    }).catch((error) => {
+      console.error('SignalR: Connection failed', error);
+      this.connectionPromise = null;
+      this.scheduleReconnect();
+      throw error;
+    });
 
     return this.connectionPromise;
   }
@@ -141,7 +160,9 @@ class SignalRConnection {
     }
 
     if (this.connection.state !== HubConnectionState.Disconnected) {
-      await this.connection.stop();
+      await traceSignalRDisconnect(async () => {
+        await this.connection!.stop();
+      });
     }
   }
 
@@ -151,12 +172,12 @@ class SignalRConnection {
       return;
     }
 
-    try {
-      await this.connection.invoke('JoinTeam', teamId);
+    await traceTeamJoin(teamId, async () => {
+      await this.connection!.invoke('JoinTeam', teamId);
       console.log(`SignalR: Joined team ${teamId}`);
-    } catch (error) {
+    }).catch((error) => {
       console.error('SignalR: Failed to join team', error);
-    }
+    });
   }
 
   async leaveTeam(teamId: string): Promise<void> {
@@ -164,12 +185,12 @@ class SignalRConnection {
       return;
     }
 
-    try {
-      await this.connection.invoke('LeaveTeam', teamId);
+    await traceTeamLeave(teamId, async () => {
+      await this.connection!.invoke('LeaveTeam', teamId);
       console.log(`SignalR: Left team ${teamId}`);
-    } catch (error) {
+    }).catch((error) => {
       console.error('SignalR: Failed to leave team', error);
-    }
+    });
   }
 
   onUpdateCreated(handler: UpdateCreatedHandler): () => void {
