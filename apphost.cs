@@ -14,19 +14,4 @@ var backend = builder.AddProject("backend", "./backend/TeamUpdates.Backend.cspro
 var frontend = builder.AddViteApp("frontend", "./frontend")
 .WithReference(backend);
 
-
-builder.AddYarp("app")
-       .WithConfiguration(c =>
-       {
-           if (builder.ExecutionContext.IsRunMode)
-           {
-               // In run mode, route /api/** to backend
-               c.AddRoute("api/{**catch-all}", backend);
-               // Forward all other requests to vite dev server
-               c.AddRoute("{**catch-all}", frontend);
-           }
-       })
-       .WithExternalHttpEndpoints()
-       .PublishWithStaticFiles(frontend);
-
 builder.Build().Run();
