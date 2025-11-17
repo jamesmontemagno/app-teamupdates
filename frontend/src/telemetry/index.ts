@@ -12,6 +12,12 @@ export {
   recordUpdateCreationLatency,
   recordSignalRMessage,
   setSignalRConnectionState,
+  recordMediaCaptured,
+  recordGeolocationRequest,
+  recordSignalRUpdateReceived,
+  recordPageView,
+  recordTeamOperation,
+  recordProfileUpdate,
 } from './metrics';
 export {
   instrumentSignalRConnection,

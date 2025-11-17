@@ -7,6 +7,7 @@ import type { Team } from '../api/types';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { showError, showSuccess } from '../utils/toast';
+import { logInfo, logError, recordTeamOperation } from '../telemetry';
 import styles from './TeamBrowserPage.module.css';
 
 const USER_ID_KEY = 'teamUpdatesUserId';
@@ -38,9 +39,20 @@ export function TeamBrowserPage() {
 
       setPublicTeams(allPublicTeams);
       setUserTeams(userTeamsList);
+      
+      logInfo('Teams loaded', {
+        'teams.public_count': allPublicTeams.length,
+        'teams.user_count': userTeamsList.length,
+        'user.has_profile': !!currentUserId,
+        'component': 'TeamBrowserPage'
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load teams';
       setError(message);
+      logError('Failed to load teams', err as Error, {
+        'user.id': currentUserId || 'none',
+        'component': 'TeamBrowserPage'
+      });
     } finally {
       setLoading(false);
     }
@@ -49,18 +61,53 @@ export function TeamBrowserPage() {
   const handleJoinTeam = async (teamId: string) => {
     if (!userId) {
       showError('Please create a profile first');
+      logInfo('User attempted to join team without profile', {
+        'team.id': teamId,
+        'component': 'TeamBrowserPage'
+      });
       navigate('/profile/new');
       return;
     }
 
     setJoiningTeamId(teamId);
+    const startTime = performance.now();
+    
+    const team = publicTeams.find(t => t.id === teamId);
+    logInfo('User joining team', {
+      'team.id': teamId,
+      'team.name': team?.name || 'unknown',
+      'user.id': userId,
+      'component': 'TeamBrowserPage'
+    });
 
     try {
       await api.joinTeam(teamId, userId);
+      const latency = performance.now() - startTime;
+      
+      recordTeamOperation('join', true);
+      logInfo('Successfully joined team', {
+        'team.id': teamId,
+        'team.name': team?.name || 'unknown',
+        'user.id': userId,
+        'latency.ms': latency,
+        'component': 'TeamBrowserPage'
+      });
+      
       showSuccess('Successfully joined team!');
       // Refresh teams
       await fetchTeams(userId);
     } catch (err) {
+      const latency = performance.now() - startTime;
+      
+      recordTeamOperation('join', false);
+      logError('Failed to join team', err as Error, {
+        'team.id': teamId,
+        'team.name': team?.name || 'unknown',
+        'user.id': userId,
+        'latency.ms': latency,
+        'component': 'TeamBrowserPage'
+      });
+      
       showError(err, 'Failed to join team');
     } finally {
       setJoiningTeamId(null);

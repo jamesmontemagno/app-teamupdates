@@ -4,7 +4,7 @@ import type { UserProfile } from '../api/types';
 import * as api from '../api';
 import { ApiError } from '../api/client';
 import { showError } from '../utils/toast';
-import { withSpan } from '../telemetry';
+import { withSpan, logInfo, logError, recordProfileUpdate } from '../telemetry';
 
 const USER_ID_KEY = 'teamUpdatesUserId';
 const ONBOARDING_KEY = 'teamUpdatesOnboarded';
@@ -82,6 +82,7 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
       return;
     }
 
+    const startTime = performance.now();
     try {
       await withSpan(
         'profile.update',
@@ -92,9 +93,19 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
         async () => {
           const updatedProfile = await api.updateProfile(userId, data);
           setProfile(updatedProfile);
+          
+          const latency = performance.now() - startTime;
+          recordProfileUpdate(latency);
+          logInfo('Profile updated successfully', {
+            'user.id': userId,
+            'latency.ms': latency
+          });
         }
       );
     } catch (err) {
+      logError('Failed to update profile', err as Error, {
+        'user.id': userId
+      });
       showError(err, 'Failed to update profile');
       throw err;
     }

@@ -7,6 +7,7 @@ import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { randomizeCoordinates } from '../utils/randomizeLocation';
 import { geocodeAddress } from '../utils/geocoding';
+import { logWarn, logError, recordMediaCaptured } from '../telemetry';
 import styles from './UpdateComposer.module.css';
 
 export interface ComposerPayload {
@@ -98,6 +99,12 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
       setLocationPin({ ...geo.position, label: geo.position.label });
     } else if (geo.status === 'error' && profile.defaultLocation) {
       // Fallback to profile default location with randomization
+      logWarn('Using default location, geolocation unavailable', {
+        'component': 'UpdateComposer',
+        'reason': geo.error || 'unknown',
+        'has_default': !!profile.defaultLocation
+      });
+      
       const randomized = randomizeCoordinates(
         profile.defaultLocation.lat,
         profile.defaultLocation.lng,
@@ -109,7 +116,7 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
         label: profile.defaultLocation.displayName,
       });
     }
-  }, [geo.position, geo.status, profile.defaultLocation, profile.randomizationRadius]);
+  }, [geo.position, geo.status, geo.error, profile.defaultLocation, profile.randomizationRadius]);
 
   useEffect(() => {
     if (voice.recorded) {
@@ -133,6 +140,11 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
     if (!file) return;
     if (file.size > MAX_MEDIA_BYTES) {
       setMediaError('Media is too large. Please pick a file smaller than 6MB.');
+      logWarn('Media file exceeds size limit', {
+        'media.type': type,
+        'media.size': file.size,
+        'media.limit': MAX_MEDIA_BYTES
+      });
       return;
     }
     const dataUrl = await toDataUrl(file);
@@ -143,6 +155,10 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
       size: file.size,
     });
     setMediaError(null);
+    // Only record metrics for actual media types (not 'none')
+    if (type === 'image' || type === 'video') {
+      recordMediaCaptured(type === 'image' ? 'photo' : type);
+    }
   };
 
   const isValid = text.trim().length > 0 && profile.displayName.trim().length > 0;
@@ -209,6 +225,10 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to geocode location';
+      logError('Manual geocoding failed', error as Error, {
+        'component': 'UpdateComposer',
+        'location_input': `${manualCity}, ${manualState}, ${manualCountry}`
+      });
       setGeocodeError(message);
     } finally {
       setGeocoding(false);
@@ -261,6 +281,10 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
 
   const startCaptureStream = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
+      logWarn('MediaDevices API not supported for camera capture', {
+        'component': 'UpdateComposer',
+        'user_agent': navigator.userAgent
+      });
       setCaptureError('Camera access is not supported in this browser.');
       return;
     }
@@ -272,6 +296,10 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
       });
       setCaptureStream(stream);
     } catch (error) {
+      logError('Camera access denied', error as Error, {
+        'component': 'UpdateComposer',
+        'capture_mode': captureMode
+      });
       console.error('Unable to access camera:', error);
       setCaptureError('Unable to access your camera. Please check permissions.');
     }
@@ -330,6 +358,8 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/jpeg');
 
+    recordMediaCaptured('photo');
+    
     finalizeCapture({
       type: 'image',
       dataUrl,
@@ -376,6 +406,9 @@ export function UpdateComposer({ onCreate, profile }: UpdateComposerProps) {
 
       const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
       const dataUrl = await toDataUrl(blob);
+      
+      recordMediaCaptured('video', recordingDuration * 1000);
+      
       finalizeCapture({
         type: 'video',
         dataUrl,

@@ -119,3 +119,100 @@ export function recordSignalRMessage(messageType: string): void {
     'signalr.message_type': messageType,
   });
 }
+
+/**
+ * Record media captured (photo, video, or audio)
+ */
+export function recordMediaCaptured(type: 'photo' | 'video' | 'audio', durationMs?: number): void {
+  if (!isTelemetryEnabled()) return;
+
+  const mediaCapturedCounter = getMeter().createCounter('media.captured', {
+    description: 'Count of media captures by type',
+    valueType: ValueType.INT,
+  });
+  mediaCapturedCounter.add(1, { 'media.type': type });
+
+  if (durationMs && type !== 'photo') {
+    const mediaDurationHistogram = getMeter().createHistogram('media.duration', {
+      description: 'Duration of audio/video captures in milliseconds',
+      unit: 'ms',
+      valueType: ValueType.DOUBLE,
+    });
+    mediaDurationHistogram.record(durationMs, { 'media.type': type });
+  }
+}
+
+/**
+ * Record geolocation request result
+ */
+export function recordGeolocationRequest(success: boolean, latencyMs: number, errorCode?: number): void {
+  if (!isTelemetryEnabled()) return;
+
+  const geoCounter = getMeter().createCounter('geolocation.requests', {
+    description: 'Geolocation API requests',
+    valueType: ValueType.INT,
+  });
+  geoCounter.add(1, { 'success': success, 'error_code': errorCode || 0 });
+
+  if (success) {
+    const geoLatencyHistogram = getMeter().createHistogram('geolocation.latency', {
+      description: 'Geolocation request latency in milliseconds',
+      unit: 'ms',
+      valueType: ValueType.DOUBLE,
+    });
+    geoLatencyHistogram.record(latencyMs);
+  }
+}
+
+/**
+ * Record SignalR real-time update received
+ */
+export function recordSignalRUpdateReceived(teamId: string): void {
+  if (!isTelemetryEnabled()) return;
+
+  const signalrUpdatesCounter = getMeter().createCounter('signalr.updates_received', {
+    description: 'Real-time updates received via SignalR',
+    valueType: ValueType.INT,
+  });
+  signalrUpdatesCounter.add(1, { 'team.id': teamId });
+}
+
+/**
+ * Record page view
+ */
+export function recordPageView(pageName: string): void {
+  if (!isTelemetryEnabled()) return;
+
+  const pageViewCounter = getMeter().createCounter('page.views', {
+    description: 'Page views by route',
+    valueType: ValueType.INT,
+  });
+  pageViewCounter.add(1, { 'page': pageName });
+}
+
+/**
+ * Record team operation (join, leave, create)
+ */
+export function recordTeamOperation(operation: 'join' | 'leave' | 'create', success: boolean): void {
+  if (!isTelemetryEnabled()) return;
+
+  const teamOpsCounter = getMeter().createCounter('team.operations', {
+    description: 'Team operations (join/leave/create)',
+    valueType: ValueType.INT,
+  });
+  teamOpsCounter.add(1, { 'operation': operation, 'success': success });
+}
+
+/**
+ * Record profile update latency
+ */
+export function recordProfileUpdate(latencyMs: number): void {
+  if (!isTelemetryEnabled()) return;
+
+  const profileLatencyHistogram = getMeter().createHistogram('profile.update.latency', {
+    description: 'Profile update latency in milliseconds',
+    unit: 'ms',
+    valueType: ValueType.DOUBLE,
+  });
+  profileLatencyHistogram.record(latencyMs);
+}

@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { Team } from '../api/types';
 import * as api from '../api';
+import { withSpan, logError, logInfo } from '../telemetry';
 
 interface TeamContextShape {
   teamId: string | null;
@@ -38,12 +39,25 @@ export function TeamProvider({ children }: { children: React.ReactNode }) {
     setError(null);
 
     try {
-      const fetchedTeam = await api.getTeam(teamId);
-      setTeam(fetchedTeam);
+      await withSpan('team.fetch', { 'team.id': teamId }, async () => {
+        const fetchedTeam = await api.getTeam(teamId);
+        setTeam(fetchedTeam);
+        
+        logInfo('Team loaded successfully', {
+          'team.id': teamId,
+          'team.name': fetchedTeam.name,
+          'component': 'TeamContext'
+        });
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load team';
       setError(message);
       setTeam(null);
+      
+      logError('Failed to load team', err as Error, {
+        'team.id': teamId,
+        'component': 'TeamContext'
+      });
     } finally {
       setLoading(false);
     }
