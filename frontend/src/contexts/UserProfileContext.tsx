@@ -1,7 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import type { UserProfile } from '../types';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import type { UserProfile } from '../api/types';
+import * as api from '../api';
+import { ApiError } from '../api/client';
+import { showError } from '../utils/toast';
+import { withSpan, logInfo, logError, recordProfileUpdate } from '../telemetry';
 
-const STORAGE_KEY = 'teamUpdatesUserProfile';
+const USER_ID_KEY = 'teamUpdatesUserId';
 const ONBOARDING_KEY = 'teamUpdatesOnboarded';
 
 const defaultProfile: UserProfile = {
@@ -22,29 +27,10 @@ export function markUserOnboarded(): void {
   localStorage.setItem(ONBOARDING_KEY, 'true');
 }
 
-function loadProfile(): UserProfile {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored) as UserProfile;
-    }
-  } catch (error) {
-    console.error('Unable to load profile', error);
-  }
-  return defaultProfile;
-}
-
-function persistProfile(profile: UserProfile) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-  } catch (error) {
-    console.error('Unable to persist profile', error);
-  }
-}
-
 interface UserProfileContextShape {
   profile: UserProfile;
-  updateProfile: (data: Partial<UserProfile>) => void;
+  loading: boolean;
+  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   geocodeLocation: (city?: string, state?: string, country?: string) => Promise<void>;
   geocoding: boolean;
   geocodeError: string | null;
@@ -52,50 +38,109 @@ interface UserProfileContextShape {
 
 const UserProfileContext = createContext<UserProfileContextShape>({
   profile: defaultProfile,
-  updateProfile: () => {},
+  loading: false,
+  updateProfile: async () => {},
   geocodeLocation: async () => {},
   geocoding: false,
   geocodeError: null,
 });
 
 export function UserProfileProvider({ children }: { children: React.ReactNode }) {
-  const [profile, setProfile] = useState<UserProfile>(() => loadProfile());
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState<UserProfile>(defaultProfile);
+  const [loading, setLoading] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
 
-  const updateProfile = useCallback((data: Partial<UserProfile>) => {
-    setProfile((current) => {
-      const next = {
-        ...current,
-        ...data,
-      };
-      if (!next.id || next.id === 'anonymous') {
-        next.id = crypto.randomUUID?.() || current.id || 'unknown';
-      }
-      persistProfile(next);
-      return next;
-    });
+  useEffect(() => {
+    const userId = localStorage.getItem(USER_ID_KEY);
+    if (userId) {
+      setLoading(true);
+      api.getProfile(userId)
+        .then((fetchedProfile) => {
+          setProfile(fetchedProfile);
+        })
+        .catch((err) => {
+          // Handle 404 - user not found, clear userId and redirect
+          if (err instanceof ApiError && err.status === 404) {
+            localStorage.removeItem(USER_ID_KEY);
+            navigate('/profile/new');
+          } else {
+            console.error('Failed to load profile', err);
+          }
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, [navigate]);
+
+  const updateProfile = useCallback(async (data: Partial<UserProfile>) => {
+    const userId = localStorage.getItem(USER_ID_KEY);
+    if (!userId || userId === 'anonymous') {
+      showError('Please create a profile first');
+      return;
+    }
+
+    const startTime = performance.now();
+    try {
+      await withSpan(
+        'profile.update',
+        {
+          'user.id': userId,
+          'profile.has_location': !!(data.defaultLocation || data.city),
+        },
+        async () => {
+          const updatedProfile = await api.updateProfile(userId, data);
+          setProfile(updatedProfile);
+          
+          const latency = performance.now() - startTime;
+          recordProfileUpdate(latency);
+          logInfo('Profile updated successfully', {
+            'user.id': userId,
+            'latency.ms': latency
+          });
+        }
+      );
+    } catch (err) {
+      logError('Failed to update profile', err as Error, {
+        'user.id': userId
+      });
+      showError(err, 'Failed to update profile');
+      throw err;
+    }
   }, []);
 
   const geocodeLocation = useCallback(async (city?: string, state?: string, country?: string) => {
     setGeocoding(true);
     setGeocodeError(null);
+
     try {
-      const { geocodeAddress } = await import('../utils/geocoding');
-      const result = await geocodeAddress(city, state, country);
-      updateProfile({
-        city,
-        state,
-        country,
-        defaultLocation: {
-          lat: result.lat,
-          lng: result.lng,
-          displayName: result.displayName,
+      await withSpan(
+        'geocode.location',
+        {
+          'location.city': city || '',
+          'location.state': state || '',
+          'location.country': country || '',
         },
-      });
+        async () => {
+          const result = await api.geocodeAddress({ city, state, country });
+          await updateProfile({
+            city,
+            state,
+            country,
+            defaultLocation: {
+              lat: result.lat,
+              lng: result.lng,
+              displayName: result.displayName,
+            },
+          });
+        }
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to geocode location';
       setGeocodeError(message);
+      showError(error, 'Failed to geocode location');
       throw error;
     } finally {
       setGeocoding(false);
@@ -103,8 +148,8 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
   }, [updateProfile]);
 
   const value = useMemo(
-    () => ({ profile, updateProfile, geocodeLocation, geocoding, geocodeError }),
-    [profile, updateProfile, geocodeLocation, geocoding, geocodeError]
+    () => ({ profile, loading, updateProfile, geocodeLocation, geocoding, geocodeError }),
+    [profile, loading, updateProfile, geocodeLocation, geocoding, geocodeError]
   );
 
   return <UserProfileContext.Provider value={value}>{children}</UserProfileContext.Provider>;

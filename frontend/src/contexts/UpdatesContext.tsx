@@ -1,8 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { formatDayKey, nowAsISOString, sortUpdatesChronologically } from '../utils/date';
-import type { LocationPin, MediaAttachment, TeamUpdate } from '../types';
-
-const STORAGE_KEY = 'teamUpdates_v1_records';
+import type { LocationPin, MediaAttachment } from '../types';
+import type { TeamUpdate } from '../api/types';
+import * as api from '../api';
+import { getSignalRConnection } from '../api/signalr';
+import { showError } from '../utils/toast';
+import { useTeam } from './TeamContext';
+import { withSpan, recordUpdateCreated, recordUpdateCreationLatency, recordSignalRUpdateReceived, logError, logInfo } from '../telemetry';
 
 export interface UpdatePayload {
   text: string;
@@ -18,62 +22,183 @@ export interface UpdatePayload {
 
 interface UpdatesContextShape {
   updates: TeamUpdate[];
-  addUpdate: (payload: UpdatePayload) => void;
+  loading: boolean;
+  error: string | null;
+  addUpdate: (payload: UpdatePayload) => Promise<void>;
+  refetch: () => void;
 }
 
 const UpdatesContext = createContext<UpdatesContextShape>({
   updates: [],
-  addUpdate: () => {},
+  loading: false,
+  error: null,
+  addUpdate: async () => {},
+  refetch: () => {},
 });
 
-function loadFromStorage(): TeamUpdate[] {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored) as TeamUpdate[];
-    }
-  } catch (error) {
-    console.error('Unable to load stored updates', error);
-  }
-  return [];
-}
-
-function persist(updates: TeamUpdate[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updates));
-  } catch (error) {
-    console.error('Unable to persist updates', error);
-  }
-}
-
 export function UpdatesProvider({ children }: { children: React.ReactNode }) {
-  const [updates, setUpdates] = useState<TeamUpdate[]>(() => loadFromStorage());
+  const { teamId } = useTeam();
+  const [updates, setUpdates] = useState<TeamUpdate[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const addUpdate = (payload: UpdatePayload) => {
-    const createdAt = payload.createdAt || nowAsISOString();
-    const dayKey = formatDayKey(createdAt);
-    const newUpdate: TeamUpdate = {
-      id: crypto.randomUUID?.() || `${Date.now()}`,
-      text: payload.text,
-      category: payload.category,
-      createdAt,
-      dayKey,
-      media: payload.media,
-      location: payload.location,
-      userId: payload.userId,
-      userDisplayName: payload.userDisplayName,
-      userEmoji: payload.userEmoji,
-      userPhotoUrl: payload.userPhotoUrl,
-    };
+  const fetchUpdates = useCallback(async () => {
+    if (!teamId) {
+      setUpdates([]);
+      return;
+    }
 
-    setUpdates((current) => sortUpdatesChronologically([newUpdate, ...current]));
-  };
+    setLoading(true);
+    setError(null);
+
+    try {
+      await withSpan('updates.fetch', { 'team.id': teamId }, async () => {
+        const fetchedUpdates = await api.getTeamUpdates(teamId);
+        setUpdates(sortUpdatesChronologically(fetchedUpdates));
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load updates';
+      setError(message);
+      logError('Failed to fetch team updates', err as Error, {
+        'team.id': teamId,
+        'component': 'UpdatesContext'
+      });
+      showError(err, 'Failed to load updates');
+    } finally {
+      setLoading(false);
+    }
+  }, [teamId]);
 
   useEffect(() => {
-    persist(updates);
-  }, [updates]);
+    fetchUpdates();
+  }, [fetchUpdates]);
 
-  const value = useMemo(() => ({ updates, addUpdate }), [updates]);
+  // Subscribe to SignalR for real-time updates
+  useEffect(() => {
+    if (!teamId) return;
+
+    const signalR = getSignalRConnection();
+    
+    const unsubscribe = signalR.onUpdateCreated((update: unknown) => {
+      const teamUpdate = update as TeamUpdate;
+      
+      // Only add updates for the current team
+      if (teamUpdate.teamId === teamId) {
+        recordSignalRUpdateReceived(teamId);
+        
+        setUpdates((current) => {
+          // Check if update already exists (primary deduplication)
+          const exists = current.some(u => u.id === teamUpdate.id);
+          if (exists) {
+            return current;
+          }
+          
+          // Add update from SignalR (from other users)
+          return sortUpdatesChronologically([teamUpdate, ...current]);
+        });
+      }
+    });
+
+    // Join team room
+    signalR.connect().then(() => {
+      signalR.joinTeam(teamId);
+    });
+
+    return () => {
+      // Cleanup: unsubscribe BEFORE leaving team
+      unsubscribe();
+      signalR.leaveTeam(teamId);
+    };
+  }, [teamId]);
+
+
+  const addUpdate = async (payload: UpdatePayload) => {
+    if (!teamId) {
+      showError('No team selected');
+      return;
+    }
+
+    const startTime = performance.now();
+    
+    logInfo('Creating new update', {
+      'team.id': teamId,
+      'user.id': payload.userId,
+      'update.category': payload.category,
+      'update.has_media': !!payload.media,
+      'update.media_type': payload.media?.type || 'none',
+      'update.has_location': !!payload.location,
+      'update.text_length': payload.text.length,
+      'component': 'UpdatesContext'
+    });
+
+    try {
+      const createdUpdate = await withSpan(
+        'update.create',
+        {
+          'team.id': teamId,
+          'user.id': payload.userId,
+          'update.category': payload.category,
+          'update.has_media': !!payload.media,
+          'update.has_location': !!payload.location,
+        },
+        async () => {
+          return await api.createUpdate(teamId, {
+            userId: payload.userId,
+            dayKey: formatDayKey(payload.createdAt || nowAsISOString()),
+            text: payload.text,
+            category: payload.category,
+            media: payload.media ? {
+              type: payload.media.type,
+              dataUrl: payload.media.dataUrl,
+              name: payload.media.name,
+              duration: payload.media.duration,
+              size: payload.media.size,
+            } : undefined,
+            location: payload.location,
+          });
+        }
+      );
+      
+      // Record metrics
+      const latencyMs = performance.now() - startTime;
+      recordUpdateCreated(payload.category, !!payload.media);
+      recordUpdateCreationLatency(latencyMs, payload.category);
+      
+      logInfo('Update created successfully', {
+        'team.id': teamId,
+        'update.id': createdUpdate.id,
+        'update.category': payload.category,
+        'latency.ms': latencyMs,
+        'component': 'UpdatesContext'
+      });
+      
+      // Add the update directly from API response
+      // SignalR might have already added it if it arrived faster
+      setUpdates((current) => {
+        const exists = current.some(u => u.id === createdUpdate.id);
+        if (exists) {
+          return current;
+        }
+        return sortUpdatesChronologically([createdUpdate, ...current]);
+      });
+    } catch (err) {
+      const latencyMs = performance.now() - startTime;
+      logError('Failed to create update', err as Error, {
+        'team.id': teamId,
+        'update.category': payload.category,
+        'latency.ms': latencyMs,
+        'component': 'UpdatesContext'
+      });
+      showError(err, 'Failed to post update');
+      throw err;
+    }
+  };
+
+  const value = useMemo(
+    () => ({ updates, loading, error, addUpdate, refetch: fetchUpdates }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [updates, loading, error, fetchUpdates]
+  );
 
   return <UpdatesContext.Provider value={value}>{children}</UpdatesContext.Provider>;
 }

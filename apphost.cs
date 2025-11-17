@@ -8,18 +8,12 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddDockerComposeEnvironment("dc");
 
-var frontend = builder.AddViteApp("frontend", "./frontend");
+// Add backend API
+var backend = builder.AddProject("backend", "./backend/TeamUpdates.Backend.csproj");
 
-builder.AddYarp("app")
-       .WithConfiguration(c =>
-       {
-           if (builder.ExecutionContext.IsRunMode)
-           {
-               // In run mode, forward all requests to vite dev server
-               c.AddRoute("{**catch-all}", frontend);
-           }
-       })
-       .WithExternalHttpEndpoints()
-       .PublishWithStaticFiles(frontend);
+// Add frontend with browser telemetry support
+var frontend = builder.AddViteApp("frontend", "./frontend")
+    .WithReference(backend)
+    .WithOtlpExporter(); // Enable OTLP exporter for browser telemetry
 
 builder.Build().Run();

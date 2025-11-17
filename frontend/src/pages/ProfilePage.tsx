@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import { useUserProfile } from '../contexts/UserProfileContext';
+import { useTeam } from '../contexts/TeamContext';
+import * as api from '../api';
+import { showSuccess, showError } from '../utils/toast';
+import { logInfo, logWarn, logError, recordMediaCaptured } from '../telemetry';
 import layoutStyles from './PageLayout.module.css';
 import profileStyles from './ProfilePage.module.css';
 import 'leaflet/dist/leaflet.css';
+
+const USER_ID_KEY = 'teamUpdatesUserId';
 
 // Fix Leaflet icon issue
 delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl;
@@ -17,7 +24,9 @@ const colorOptions = ['#5f7a90', '#c05655', '#2a9d8f', '#7c3aed', '#f97316'];
 const emojiOptions = ['🌟', '🚀', '💡', '🎯', '🔥', '⚡', '💪', '🎨', '🌈', '✨', '🎉', '💻', '📱', '🎮', '🏃', '🌺'];
 
 export function ProfilePage() {
+  const navigate = useNavigate();
   const { profile, updateProfile, geocodeLocation, geocoding, geocodeError } = useUserProfile();
+  const { teamId, team } = useTeam();
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [emoji, setEmoji] = useState(profile.emoji);
   const [color, setColor] = useState(profile.color);
@@ -30,6 +39,7 @@ export function ProfilePage() {
   const [geocodeSuccess, setGeocodeSuccess] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(profile.photoUrl || '');
   const [saved, setSaved] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -42,6 +52,14 @@ export function ProfilePage() {
   const handleSave = () => {
     if (!displayName.trim()) return;
     setSaved(true);
+    
+    logInfo('Saving profile changes', {
+      'profile.has_emoji': !!emoji.trim(),
+      'profile.has_photo': !!photoUrl,
+      'profile.has_location': !!(city || state || country),
+      'component': 'ProfilePage'
+    });
+    
     updateProfile({ 
       displayName: displayName.trim(), 
       emoji: emoji.trim() || '🌟', 
@@ -53,6 +71,34 @@ export function ProfilePage() {
       photoUrl,
     });
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleLeaveTeam = async () => {
+    if (!teamId || !team) {
+      showError('No team selected');
+      return;
+    }
+
+    const userId = localStorage.getItem(USER_ID_KEY);
+    if (!userId) {
+      showError('User not found');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to leave "${team.name}"? You will no longer see updates from this team.`)) {
+      return;
+    }
+
+    setLeaving(true);
+    try {
+      await api.leaveTeam(teamId, userId);
+      showSuccess(`Left ${team.name}`);
+      navigate('/teams');
+    } catch (err) {
+      showError(err, 'Failed to leave team');
+    } finally {
+      setLeaving(false);
+    }
   };
 
   const handleGeocode = async () => {
@@ -144,14 +190,22 @@ export function ProfilePage() {
         setStream(null);
       }
       setIsCameraActive(false);
+      logInfo('Camera stopped', { 'component': 'ProfilePage' });
     } else {
       // Start camera
       try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          logWarn('Camera API not supported', { 'component': 'ProfilePage' });
+          alert('Camera is not supported on this device.');
+          return;
+        }
+        
         const mediaStream = await navigator.mediaDevices.getUserMedia({ 
           video: { facingMode: 'user' } 
         });
         setStream(mediaStream);
         setIsCameraActive(true);
+        logInfo('Camera started', { 'component': 'ProfilePage' });
         
         // Wait for video element to be ready
         setTimeout(() => {
@@ -161,6 +215,7 @@ export function ProfilePage() {
         }, 100);
       } catch (error) {
         console.error('Error accessing camera:', error);
+        logError('Camera access denied', error as Error, { 'component': 'ProfilePage' });
         alert('Unable to access camera. Please check permissions.');
       }
     }
@@ -185,6 +240,8 @@ export function ProfilePage() {
     // Convert to data URL
     const dataUrl = canvas.toDataURL('image/jpeg');
     setPhotoUrl(dataUrl);
+    recordMediaCaptured('photo');
+    logInfo('Profile photo captured', { 'component': 'ProfilePage' });
     
     // Stop camera
     if (stream) {
@@ -467,6 +524,30 @@ export function ProfilePage() {
         >
           {saved ? '✓ Saved!' : 'Save profile'}
         </button>
+
+        {teamId && team && (
+          <div style={{ marginTop: '32px', paddingTop: '32px', borderTop: '2px solid var(--border)' }}>
+            <h3 style={{ marginBottom: '12px', fontSize: '1.1rem' }}>Team Membership</h3>
+            <p className="text" style={{ marginBottom: '8px' }}>
+              Currently viewing: <strong>{team.name}</strong>
+            </p>
+            <p className="text text--muted" style={{ marginBottom: '16px', fontSize: '0.875rem' }}>
+              Leave this team to stop receiving updates and remove access.
+            </p>
+            <button
+              type="button"
+              onClick={handleLeaveTeam}
+              disabled={leaving}
+              className="button button--soft"
+              style={{ 
+                color: 'var(--error-color, #e63946)',
+                borderColor: 'var(--error-color, #e63946)'
+              }}
+            >
+              {leaving ? 'Leaving...' : 'Leave Team'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,32 @@
+{
+	"servers": {
+		"css": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"css-mcp"
+			],
+			"env": {},
+			"type": "stdio"
+		},
+		"microsoft-learn": {
+			"type": "http",
+			"url": "https://learn.microsoft.com/api/mcp"
+		},
+		"aspire-dashboard": {
+			"type": "http",
+			"url": "http://localhost:23052/mcp",
+			"headers": {
+				"x-mcp-api-key": "${input:x_mcp_api_key}"
+			}
+		}
+	},
+	"inputs": [
+		{
+			"id": "x_mcp_api_key",
+			"type": "promptString",
+			"description": "Enter x-mcp-api-key",
+			"password": true
+		}
+	]
+}

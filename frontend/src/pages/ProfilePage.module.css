@@ -1,5 +1,6 @@
 .card {
   background: var(--gradient-card);
+  -webkit-backdrop-filter: blur(10px); /* Safari 9+ */
   backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 24px;
