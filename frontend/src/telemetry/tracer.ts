@@ -5,7 +5,7 @@ import { trace, context, SpanStatusCode } from '@opentelemetry/api';
 import type { Span } from '@opentelemetry/api';
 import { isTelemetryEnabled } from './config';
 
-const TRACER_NAME = 'pulseboard-frontend';
+const TRACER_NAME = 'frontend';
 
 /**
  * Get the global tracer instance

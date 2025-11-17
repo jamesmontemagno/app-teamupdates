@@ -11,7 +11,9 @@ builder.AddDockerComposeEnvironment("dc");
 // Add backend API
 var backend = builder.AddProject("backend", "./backend/TeamUpdates.Backend.csproj");
 
+// Add frontend with browser telemetry support
 var frontend = builder.AddViteApp("frontend", "./frontend")
-.WithReference(backend);
+    .WithReference(backend)
+    .WithOtlpExporter(); // Enable OTLP exporter for browser telemetry
 
 builder.Build().Run();

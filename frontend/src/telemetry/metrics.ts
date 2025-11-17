@@ -4,7 +4,7 @@
 import { metrics, ValueType } from '@opentelemetry/api';
 import { isTelemetryEnabled } from './config';
 
-const METER_NAME = 'pulseboard-frontend';
+const METER_NAME = 'frontend';
 
 /**
  * Get the global meter instance
