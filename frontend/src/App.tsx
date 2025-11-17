@@ -5,6 +5,7 @@ import { TeamPage } from './pages/TeamPage'
 import { LandingPage } from './pages/LandingPage'
 import { TeamBrowserPage } from './pages/TeamBrowserPage'
 import { ProfileSetupPage } from './pages/ProfileSetupPage'
+import { TelemetryDebugPage } from './pages/TelemetryDebugPage'
 import { TeamProvider, useTeam } from './contexts/TeamContext'
 import { UpdatesProvider } from './contexts/UpdatesContext'
 import { Toaster } from './components/Toaster'
@@ -133,6 +134,7 @@ function AppShell() {
             <Route path="/teams" element={<TeamBrowserPage />} />
             <Route path="/profile/new" element={<ProfileSetupPage />} />
             <Route path="/profile/edit" element={<ProfilePage />} />
+            <Route path="/debug/telemetry" element={<TelemetryDebugPage />} />
             <Route path="/teams/:teamId" element={
               <TeamProvider>
                 <UpdatesProvider>

@@ -11,10 +11,30 @@ export default defineConfig(({ mode }) => {
   
   console.log('[vite] Backend URL:', backendUrl);
   console.log('[vite] Mock API:', useMockApi);
+  console.log('[vite] OTEL_EXPORTER_OTLP_ENDPOINT:', env.OTEL_EXPORTER_OTLP_ENDPOINT);
+  console.log('[vite] ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL:', env.ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL);
+  console.log('[vite] VITE_OTEL_EXPORTER_OTLP_ENDPOINT:', env.VITE_OTEL_EXPORTER_OTLP_ENDPOINT);
+  
+  // Determine the correct OTLP endpoint for browser telemetry
+  const otlpEndpoint = env.ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL || env.VITE_OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318';
+  console.log('[vite] ✅ Using OTLP endpoint for browser:', otlpEndpoint);
 
   return {
     plugins: [react()],
     base: '/app-teamupdates/',
+    define: {
+      // Make Aspire OTLP environment variables available to the browser
+      // These are set by Aspire AppHost in launchSettings.json
+      // IMPORTANT: Browsers need HTTP endpoint (4318), not gRPC (21224)
+      // Aspire sets OTEL_EXPORTER_OTLP_ENDPOINT to gRPC, so we must use HTTP variant
+      'import.meta.env.VITE_OTEL_EXPORTER_OTLP_ENDPOINT': JSON.stringify(otlpEndpoint),
+      'import.meta.env.VITE_OTEL_EXPORTER_OTLP_HEADERS': JSON.stringify(
+        env.OTEL_EXPORTER_OTLP_HEADERS || env.VITE_OTEL_EXPORTER_OTLP_HEADERS || ''
+      ),
+      'import.meta.env.VITE_OTEL_RESOURCE_ATTRIBUTES': JSON.stringify(
+        env.OTEL_RESOURCE_ATTRIBUTES || env.VITE_OTEL_RESOURCE_ATTRIBUTES || ''
+      ),
+    },
     server: {
       allowedHosts: ['host.docker.internal'],
       // Only enable proxy if NOT in mock mode

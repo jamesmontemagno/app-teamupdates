@@ -5,6 +5,7 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { useTeam } from '../contexts/TeamContext';
 import * as api from '../api';
 import { showSuccess, showError } from '../utils/toast';
+import { logInfo, logWarn, logError, recordMediaCaptured } from '../telemetry';
 import layoutStyles from './PageLayout.module.css';
 import profileStyles from './ProfilePage.module.css';
 import 'leaflet/dist/leaflet.css';
@@ -51,6 +52,14 @@ export function ProfilePage() {
   const handleSave = () => {
     if (!displayName.trim()) return;
     setSaved(true);
+    
+    logInfo('Saving profile changes', {
+      'profile.has_emoji': !!emoji.trim(),
+      'profile.has_photo': !!photoUrl,
+      'profile.has_location': !!(city || state || country),
+      'component': 'ProfilePage'
+    });
+    
     updateProfile({ 
       displayName: displayName.trim(), 
       emoji: emoji.trim() || '🌟', 
@@ -181,14 +190,22 @@ export function ProfilePage() {
         setStream(null);
       }
       setIsCameraActive(false);
+      logInfo('Camera stopped', { 'component': 'ProfilePage' });
     } else {
       // Start camera
       try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          logWarn('Camera API not supported', { 'component': 'ProfilePage' });
+          alert('Camera is not supported on this device.');
+          return;
+        }
+        
         const mediaStream = await navigator.mediaDevices.getUserMedia({ 
           video: { facingMode: 'user' } 
         });
         setStream(mediaStream);
         setIsCameraActive(true);
+        logInfo('Camera started', { 'component': 'ProfilePage' });
         
         // Wait for video element to be ready
         setTimeout(() => {
@@ -198,6 +215,7 @@ export function ProfilePage() {
         }, 100);
       } catch (error) {
         console.error('Error accessing camera:', error);
+        logError('Camera access denied', error as Error, { 'component': 'ProfilePage' });
         alert('Unable to access camera. Please check permissions.');
       }
     }
@@ -222,6 +240,8 @@ export function ProfilePage() {
     // Convert to data URL
     const dataUrl = canvas.toDataURL('image/jpeg');
     setPhotoUrl(dataUrl);
+    recordMediaCaptured('photo');
+    logInfo('Profile photo captured', { 'component': 'ProfilePage' });
     
     // Stop camera
     if (stream) {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { logWarn, logError, logInfo, recordMediaCaptured } from '../telemetry';
 
 type RecorderStatus = 'idle' | 'recording' | 'ready' | 'error';
 
@@ -17,6 +18,7 @@ export function useVoiceRecorder(maxSeconds = 90) {
   const chunksRef = useRef<Blob[]>([]);
   const intervalRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
+  const elapsedRef = useRef(0);
   const [elapsed, setElapsed] = useState(0);
 
   const cleanupStream = () => {
@@ -36,6 +38,14 @@ export function useVoiceRecorder(maxSeconds = 90) {
   const stopRecording = useCallback(() => {
     if (recorderRef.current && recorderRef.current.state === 'recording') {
       recorderRef.current.stop();
+      
+      const duration = elapsedRef.current;
+      recordMediaCaptured('audio', duration * 1000);
+      logInfo('Voice recording completed', {
+        'component': 'useVoiceRecorder',
+        'duration_seconds': duration.toString(),
+        'max_seconds': maxSeconds.toString()
+      });
     }
     if (intervalRef.current) {
       window.clearInterval(intervalRef.current);
@@ -43,10 +53,14 @@ export function useVoiceRecorder(maxSeconds = 90) {
     }
     setStatus((prev) => (prev === 'recording' ? 'ready' : prev));
     setElapsed(0);
-  }, []);
+  }, [maxSeconds]);
 
   const startRecording = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
+      logWarn('MediaDevices API not supported', {
+        'component': 'useVoiceRecorder',
+        'user_agent': navigator.userAgent
+      });
       setError('Microphone access is not supported in this browser.');
       setStatus('error');
       return;
@@ -54,6 +68,12 @@ export function useVoiceRecorder(maxSeconds = 90) {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      logInfo('Microphone access granted', {
+        'component': 'useVoiceRecorder',
+        'max_seconds': maxSeconds.toString()
+      });
+      
       cleanupStream();
       streamRef.current = stream;
       const recorder = new MediaRecorder(stream);
@@ -81,13 +101,17 @@ export function useVoiceRecorder(maxSeconds = 90) {
       intervalRef.current = window.setInterval(() => {
         if (startTimeRef.current) {
           const next = (Date.now() - startTimeRef.current) / 1000;
+          elapsedRef.current = next;
           setElapsed(next);
           if (next >= maxSeconds) {
             stopRecording();
           }
         }
       }, 200);
-    } catch {
+    } catch (error) {
+      logError('Microphone access denied', error as Error, {
+        'component': 'useVoiceRecorder'
+      });
       setError('Unable to start recording. Please allow microphone access.');
       setStatus('error');
     }

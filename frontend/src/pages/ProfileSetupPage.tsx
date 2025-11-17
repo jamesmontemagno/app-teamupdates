@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { showError, showSuccess } from '../utils/toast';
+import { logInfo, logError, logWarn } from '../telemetry';
 import styles from './ProfileSetupPage.module.css';
 
 const USER_ID_KEY = 'teamUpdatesUserId';
@@ -30,6 +31,11 @@ export function ProfileSetupPage() {
     // Check file size (max 1MB for profile photo)
     if (file.size > 1024 * 1024) {
       showError('Photo must be less than 1MB');
+      logWarn('Profile photo exceeds size limit', {
+        'photo.size': file.size,
+        'photo.limit': 1024 * 1024,
+        'component': 'ProfileSetupPage'
+      });
       return;
     }
 
@@ -37,6 +43,10 @@ export function ProfileSetupPage() {
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
       setPhotoPreview(dataUrl);
+      logInfo('Profile photo uploaded', {
+        'photo.size': file.size,
+        'component': 'ProfileSetupPage'
+      });
     };
     reader.readAsDataURL(file);
   };
@@ -50,6 +60,14 @@ export function ProfileSetupPage() {
     }
 
     setSubmitting(true);
+    const startTime = performance.now();
+
+    logInfo('Creating new profile', {
+      'profile.has_photo': !!photoPreview,
+      'profile.emoji': emoji,
+      'profile.randomization_radius': randomizationRadius,
+      'component': 'ProfileSetupPage'
+    });
 
     try {
       const profile = await api.createProfile({
@@ -63,9 +81,23 @@ export function ProfileSetupPage() {
       // Store userId in localStorage
       localStorage.setItem(USER_ID_KEY, profile.id);
 
+      const latency = performance.now() - startTime;
+      logInfo('Profile created successfully', {
+        'profile.id': profile.id,
+        'profile.display_name': displayName.trim(),
+        'profile.has_photo': !!photoPreview,
+        'latency.ms': latency,
+        'component': 'ProfileSetupPage'
+      });
+
       showSuccess('Profile created! 🎉');
       navigate('/teams');
     } catch (err) {
+      const latency = performance.now() - startTime;
+      logError('Failed to create profile', err as Error, {
+        'latency.ms': latency,
+        'component': 'ProfileSetupPage'
+      });
       showError(err, 'Failed to create profile');
     } finally {
       setSubmitting(false);

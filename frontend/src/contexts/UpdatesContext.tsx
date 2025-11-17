@@ -6,6 +6,7 @@ import * as api from '../api';
 import { getSignalRConnection } from '../api/signalr';
 import { showError } from '../utils/toast';
 import { useTeam } from './TeamContext';
+import { withSpan, recordUpdateCreated, recordUpdateCreationLatency, recordSignalRUpdateReceived, logError, logInfo } from '../telemetry';
 
 export interface UpdatePayload {
   text: string;
@@ -51,11 +52,17 @@ export function UpdatesProvider({ children }: { children: React.ReactNode }) {
     setError(null);
 
     try {
-      const fetchedUpdates = await api.getTeamUpdates(teamId);
-      setUpdates(sortUpdatesChronologically(fetchedUpdates));
+      await withSpan('updates.fetch', { 'team.id': teamId }, async () => {
+        const fetchedUpdates = await api.getTeamUpdates(teamId);
+        setUpdates(sortUpdatesChronologically(fetchedUpdates));
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load updates';
       setError(message);
+      logError('Failed to fetch team updates', err as Error, {
+        'team.id': teamId,
+        'component': 'UpdatesContext'
+      });
       showError(err, 'Failed to load updates');
     } finally {
       setLoading(false);
@@ -77,6 +84,8 @@ export function UpdatesProvider({ children }: { children: React.ReactNode }) {
       
       // Only add updates for the current team
       if (teamUpdate.teamId === teamId) {
+        recordSignalRUpdateReceived(teamId);
+        
         setUpdates((current) => {
           // Check if update already exists (primary deduplication)
           const exists = current.some(u => u.id === teamUpdate.id);
@@ -109,20 +118,58 @@ export function UpdatesProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    const startTime = performance.now();
+    
+    logInfo('Creating new update', {
+      'team.id': teamId,
+      'user.id': payload.userId,
+      'update.category': payload.category,
+      'update.has_media': !!payload.media,
+      'update.media_type': payload.media?.type || 'none',
+      'update.has_location': !!payload.location,
+      'update.text_length': payload.text.length,
+      'component': 'UpdatesContext'
+    });
+
     try {
-      const createdUpdate = await api.createUpdate(teamId, {
-        userId: payload.userId,
-        dayKey: formatDayKey(payload.createdAt || nowAsISOString()),
-        text: payload.text,
-        category: payload.category,
-        media: payload.media ? {
-          type: payload.media.type,
-          dataUrl: payload.media.dataUrl,
-          name: payload.media.name,
-          duration: payload.media.duration,
-          size: payload.media.size,
-        } : undefined,
-        location: payload.location,
+      const createdUpdate = await withSpan(
+        'update.create',
+        {
+          'team.id': teamId,
+          'user.id': payload.userId,
+          'update.category': payload.category,
+          'update.has_media': !!payload.media,
+          'update.has_location': !!payload.location,
+        },
+        async () => {
+          return await api.createUpdate(teamId, {
+            userId: payload.userId,
+            dayKey: formatDayKey(payload.createdAt || nowAsISOString()),
+            text: payload.text,
+            category: payload.category,
+            media: payload.media ? {
+              type: payload.media.type,
+              dataUrl: payload.media.dataUrl,
+              name: payload.media.name,
+              duration: payload.media.duration,
+              size: payload.media.size,
+            } : undefined,
+            location: payload.location,
+          });
+        }
+      );
+      
+      // Record metrics
+      const latencyMs = performance.now() - startTime;
+      recordUpdateCreated(payload.category, !!payload.media);
+      recordUpdateCreationLatency(latencyMs, payload.category);
+      
+      logInfo('Update created successfully', {
+        'team.id': teamId,
+        'update.id': createdUpdate.id,
+        'update.category': payload.category,
+        'latency.ms': latencyMs,
+        'component': 'UpdatesContext'
       });
       
       // Add the update directly from API response
@@ -135,6 +182,13 @@ export function UpdatesProvider({ children }: { children: React.ReactNode }) {
         return sortUpdatesChronologically([createdUpdate, ...current]);
       });
     } catch (err) {
+      const latencyMs = performance.now() - startTime;
+      logError('Failed to create update', err as Error, {
+        'team.id': teamId,
+        'update.category': payload.category,
+        'latency.ms': latencyMs,
+        'component': 'UpdatesContext'
+      });
       showError(err, 'Failed to post update');
       throw err;
     }
